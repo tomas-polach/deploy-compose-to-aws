@@ -30,15 +30,15 @@ def main():
 
     args = parser.parse_args()
     # Convert argument names with dashes to underscores
-    args = {k.replace('-', '_'): v for k, v in vars(args).items()}
+    args_dict = {k.replace('-', '_'): v for k, v in vars(args).items()}
 
     # Use the provided project_name or default to the repository name
-    if args.cf_stack_prefix is None:
-        args.cf_stack_prefix = os.getenv('GITHUB_REPOSITORY', 'default-repo').split('/')[-1]
+    if args_dict['cf_stack_prefix'] is None:
+        args_dict['cf_stack_prefix'] = os.getenv('GITHUB_REPOSITORY', 'default-repo').split('/')[-1]
 
     # Use the provided environment or default to the branch name
-    if args.environment is None:
-        args.environment = os.getenv('GITHUB_REF', 'refs/heads/default-branch').split('/')[-1]
+    if args_dict['environment'] is None:
+        args_dict['environment'] = os.getenv('GITHUB_REF', 'refs/heads/default-branch').split('/')[-1]
 
     # remove None values from args
     kwargs = {k: v for k, v in vars(args).items() if v is not None}
