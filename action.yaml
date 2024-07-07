@@ -42,11 +42,11 @@ runs:
     AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
     AWS_REGION: ${{ inputs.aws_region }}
   args:
-    - --aws_region="${{ inputs.aws_region }}"
-    - --cf_stack_prefix ${{ inputs.cf_stack_prefix }}
-    - --environment ${{ inputs.env_name }}
-    - --domain ${{ inputs.domain }}
-    - --domain_role_arn ${{ inputs.domain_role_arn }}
-    - --cert_role_arn ${{ inputs.cert_role_arn }}
-    - --docker_compose_path ${{ inputs.docker_compose_path }}
-    - --aws_compose_path ${{ inputs.aws_compose_path }}
+    - --aws-region="${{ inputs.aws_region }}"
+    - --cf-stack-prefix="${{ inputs.cf_stack_prefix }}"
+    - --environment="${{ inputs.env_name }}"
+    - --domain="${{ inputs.domain }}"
+    - --domain-role-arn="${{ inputs.domain_role_arn }}"
+    - --cert-role-arn="${{ inputs.cert_role_arn }}"
+    - --docker-compose-path="${{ inputs.docker_compose_path }}"
+    - --aws-compose-path="${{ inputs.aws_compose_path }}"

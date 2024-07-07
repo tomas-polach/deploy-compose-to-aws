@@ -1,6 +1,7 @@
 import os
 import argparse
 import asyncio
+from pprint import pprint as pp
 
 from src.deploy import Deployment
 
@@ -27,6 +28,8 @@ def main():
     # parser.add_argument('--image_uri_format', type=str, required=False, help='The image URI format')
 
     args = parser.parse_args()
+
+    pp(args)
 
     # Use the provided project_name or default to the repository name
     if args.cf_stack_prefix is None:
