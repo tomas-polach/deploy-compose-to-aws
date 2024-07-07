@@ -7,6 +7,10 @@ from src.deploy import Deployment
 
 
 def main():
+    # just print all the raw args from the cli
+    for arg in sys.argv:
+        print(arg)
+
     parser = argparse.ArgumentParser(description='RuDeploy to Docker Compose to AWS')
 
     parser.add_argument('--aws_region', type=str, required=True, help='The AWS region', default=os.getenv('INPUT_AWS_REGION'))
