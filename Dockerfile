@@ -16,7 +16,7 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 WORKDIR /action
 
 # Copy the action and src files
-COPY action.yml /action/action.yml
+COPY action.yaml /action/action.yaml
 COPY src/ /action/src/
 
 # Install Python dependencies
