@@ -23,5 +23,5 @@ COPY src/ ./src/
 RUN pip install -r ./src/requirements.txt
 
 # Set the entrypoint to run the Python script as a module
-RUN ls -la
+RUN ls -la ./src
 ENTRYPOINT ["python", "-m", "src.cli"]
