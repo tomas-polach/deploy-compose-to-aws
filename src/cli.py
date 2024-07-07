@@ -8,7 +8,7 @@ from src.deploy import Deployment
 def main():
     parser = argparse.ArgumentParser(description='RuDeploy to Docker Compose to AWS')
 
-    parser.add_argument('--aws_region', type=str, required=True, help='The AWS region')
+    parser.add_argument('--aws_region', type=str, required=True, help='The AWS region', default=os.getenv('INPUT_AWS_REGION'))
 
     parser.add_argument('--cf_stack_prefix', type=str, required=False, help='Prefix for the Cloudformation Stack')
     parser.add_argument('--environment', type=str, required=False,
