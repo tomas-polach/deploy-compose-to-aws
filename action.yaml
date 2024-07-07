@@ -42,6 +42,7 @@ runs:
     AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
     AWS_REGION: ${{ inputs.aws_region }}
   args:
+    - --aws_region ${{ inputs.aws_region }}
     - --cf_stack_prefix ${{ inputs.cf_stack_prefix }}
     - --environment ${{ inputs.env_name }}
     - --domain ${{ inputs.domain }}
