@@ -16,11 +16,11 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 WORKDIR /action
 
 # Copy the action and src files
-COPY action.yaml /action/action.yaml
-COPY src/ /action/src/
+COPY action.yaml ./action.yaml
+COPY src/ ./src/
 
 # Install Python dependencies
-RUN pip install -r /action/src/requirements.txt
+RUN pip install -r ./src/requirements.txt
 
 # Set the entrypoint to run the Python script as a module
-ENTRYPOINT ["python3", "-m", "src.cli"]
+ENTRYPOINT ["python", "-m", "src.cli"]
