@@ -30,7 +30,11 @@ def main():
 
     args = parser.parse_args()
     # Convert argument names with dashes to underscores
-    args_dict = {k.replace('-', '_'): v for k, v in vars(args).items()}
+    args_dict = {
+        k.replace('-', '_'): v
+        for k, v in vars(args).items()
+        if v != '' and v is not None
+    }
 
     # Use the provided project_name or default to the repository name
     if args_dict['cf_stack_prefix'] is None:
@@ -40,13 +44,10 @@ def main():
     if args_dict['environment'] is None:
         args_dict['environment'] = os.getenv('GITHUB_REF', 'refs/heads/default-branch').split('/')[-1]
 
-    # remove None values from args
-    kwargs = {k: v for k, v in vars(args).items() if v is not None}
-
     # change working dir
     os.chdir('/github/workspace')
 
-    dep = Deployment(**kwargs)
+    dep = Deployment(**args_dict)
     asyncio.run(dep.run())
 
 
