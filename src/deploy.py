@@ -31,9 +31,9 @@ class Deployment:
         cf_stack_prefix: str,
         aws_region: str,
         environment: str = DEFAULT_ENVIRONMENT,
-        domain: str | None = None,
-        domain_role_arn: str | None = None,
-        cert_role_arn: str | None = None,
+        elb_domain: str | None = None,
+        elb_domain_role_arn: str | None = None,
+        elb_cert_role_arn: str | None = None,
         docker_compose_path: str = "docker-compose.yaml",
         aws_compose_path: str = "aws-compose-x.yaml",
         temp_dir: str | None = DEFAULT_TEMP_FILES,
@@ -43,9 +43,9 @@ class Deployment:
         self.project_name = cf_stack_prefix
         self.environment = environment
         self.aws_region = aws_region
-        self.domain_role_arn = domain_role_arn
-        self.cert_role_arn = cert_role_arn
-        self.domain = domain
+        self.domain = elb_domain
+        self.domain_role_arn = elb_domain_role_arn
+        self.cert_role_arn = elb_cert_role_arn
         self.docker_compose_path = Path(docker_compose_path)
         self.aws_compose_path = Path(aws_compose_path)
         self.mutable_tags = mutable_tags
