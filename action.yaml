@@ -1,0 +1,51 @@
+name: 'CloudFormation Deploy'
+description: 'Deploy to AWS CloudFormation using Python 3.11 and AWS CLI'
+inputs:
+  aws_access_key_id:
+    description: 'The AWS access key id'
+    required: true
+  aws_secret_access_key:
+    description: 'The AWS secret access key'
+    required: true
+  # optional
+  aws_region:
+    description: 'The AWS region. Fallback to "eu-west-1"'
+    required: false
+    default: "eu-west-1"
+  cf_stack_prefix:
+    description: 'The prefix for the CloudFormation stack name. Fallback to repo name.'
+    required: false
+  env_name:
+    description: 'The environment (will be added as suffix to the stack prefix). Fallback to branch name.'
+    required: false
+  domain:
+    description: 'The domain. '
+    required: false
+  domain_role_arn:
+    description: 'The domain role ARN'
+    required: false
+  cert_role_arn:
+    description: 'The certificate role ARN'
+    required: false
+  docker_compose_path:
+    description: 'The docker compose path. Defaults to "docker-compose.yaml"'
+    required: false
+  aws_compose_path:
+    description: 'The AWS compose path. Defaults to "aws-compose-x.yaml"'
+    required: false
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
+    AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+    AWS_REGION: ${{ inputs.aws_region }}
+  args:
+    - --cf_stack_prefix ${{ inputs.cf_stack_prefix }}
+    - --environment ${{ inputs.env_name }}
+    - --domain ${{ inputs.domain }}
+    - --domain_role_arn ${{ inputs.domain_role_arn }}
+    - --cert_role_arn ${{ inputs.cert_role_arn }}
+    - --docker_compose_path ${{ inputs.docker_compose_path }}
+    - --aws_compose_path ${{ inputs.aws_compose_path }}
