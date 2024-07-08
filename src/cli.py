@@ -35,7 +35,14 @@ def main():
         if v != '' and v is not None
     }
 
+    print('args_dict:')
+    pp(args_dict)
+
     # Get branch name and commit hash
+    git_repo_name = os.getenv('GITHUB_REPOSITORY', None)
+    if git_repo_name is not None:
+        git_repo_name = git_repo_name.split('/')[-1]
+
     git_branch = os.getenv('GITHUB_REF', None)
     if git_branch is not None:
         git_branch = git_branch.split('/')[-1]
@@ -45,16 +52,15 @@ def main():
     if git_commit is not None:
         args_dict['git_commit'] = git_commit
 
+    # set defaults based on github action env vars
+
     # Use the provided project_name or default to the repository name
-    if args_dict['cf_stack_prefix'] is None:
-        args_dict['cf_stack_prefix'] = os.getenv('GITHUB_REPOSITORY', 'default-repo').split('/')[-1]
+    if 'cf_stack_prefix' not in args_dict:
+        args_dict['cf_stack_prefix'] = git_repo_name
 
     # Use the provided environment or default to the branch name
-    if args_dict['environment'] is None and git_branch is not None:
+    if 'environment' not in args_dict and git_branch is not None:
         args_dict['environment'] = git_branch
-
-    print('args_dict:')
-    pp(args_dict)
 
     # change working dir
     os.chdir('/github/workspace')
