@@ -40,6 +40,7 @@ class Deployment:
         docker_compose_path: str = "docker-compose.yaml",
         ecs_compose_x_path: str = "aws-compose-x.yaml",
         temp_dir: str | None = DEFAULT_TEMP_FILES,
+        ecr_keep_last_n_images: int | None = 10,
         mutable_tags: bool = True,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
     ):
@@ -51,6 +52,7 @@ class Deployment:
         self.cert_role_arn = elb_cert_role_arn
         self.docker_compose_path = Path(docker_compose_path)
         self.aws_compose_path = Path(ecs_compose_x_path)
+        self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.mutable_tags = mutable_tags
         self.image_uri_format = image_uri_format
 
@@ -133,7 +135,7 @@ class Deployment:
         cmd = f"docker login --username AWS --password-stdin {self.aws_account_id}.dkr.ecr.{self.aws_region}.amazonaws.com"
         await Deployment._cmd_run_async(cmd, input=password.encode())
 
-    def _cf_ci_generate(self, image_uris: list[str], keep_last_n: int | None = 5) -> dict[str, dict]:
+    def _cf_ci_generate(self, image_uris: list[str], ecr_keep_last_n_images: int | None = 10) -> dict[str, dict]:
         cf_template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Resources": {
@@ -164,18 +166,18 @@ class Deployment:
                 }
             }
 
-            if keep_last_n is not None:
+            if ecr_keep_last_n_images is not None:
                 # create ECR with policy retaining max N images
                 cf_template['Resources'][resource_name]['Properties']["LifecyclePolicy"] = {
                     "LifecyclePolicyText": json.dumps({
                         "rules": [
                             {
                                 "rulePriority": 1,
-                                "description": f"Keep last {keep_last_n} images",
+                                "description": f"Keep last {ecr_keep_last_n_images} images",
                                 "selection": {
                                     "tagStatus": "any",
                                     "countType": "imageCountMoreThan",
-                                    "countNumber": keep_last_n
+                                    "countNumber": ecr_keep_last_n_images
                                 },
                                 "action": {
                                     "type": "expire"
@@ -347,7 +349,10 @@ build --parallel'''
 
         # CloudFormation: ci stack (ECR repos for locally built docker images and ci bucket)
         # note: ci cf template can't be uploaded to S3 because the ci bucket will be created in the ci stack
-        cf_ci_template = self._cf_ci_generate(image_uris=list(docker_image_uri_by_service_name.values()))
+        cf_ci_template = self._cf_ci_generate(
+            image_uris=list(docker_image_uri_by_service_name.values()),
+            ecr_keep_last_n_images=self.ecr_keep_last_n_images,
+        )
         self._cf_ci_deploy(cf_ci_template)
 
         # Docker:

@@ -18,16 +18,18 @@ def main():
     parser.add_argument('--aws-region', type=str, required=True, help='The AWS region', default=os.getenv('INPUT_AWS_REGION'))
 
     parser.add_argument('--cf-stack-prefix', type=str, required=False, help='Prefix for the Cloudformation Stack')
-    parser.add_argument('--environment', type=str, required=False,
+    parser.add_argument('--en-name', type=str, required=False,
                         help='The environment (will be added as suffix to the stack name)')
 
-    parser.add_argument('--elb-domain', type=str, required=False, help='The domain to map to elastic load balancer')
-    parser.add_argument('--elb-domain-role-arn', type=str, required=False, help='The domain role ARN')
+    parser.add_argument('--ecr-keep-last-n-images', type=int, required=False, help='The number of images to keep in ECR')
 
     parser.add_argument('--docker-compose-path', type=str, required=False,
                         help='The docker compose path')
     parser.add_argument('--aws-compose-path', type=str, required=False,
                         help='The AWS compose path')
+
+    parser.add_argument('--elb-domain', type=str, required=False, help='The domain to map to elastic load balancer')
+    parser.add_argument('--elb-domain-role-arn', type=str, required=False, help='The domain role ARN')
 
     args = parser.parse_args()
     # Convert argument names with dashes to underscores

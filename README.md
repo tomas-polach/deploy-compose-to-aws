@@ -35,9 +35,12 @@ jobs:
 
 ## Todos
 
+- [ ] Format code
+- [ ] Refactor for readability
 - [ ] Add examples
-- [ ] Print CF errors in action results
+- [ ] Split out creation of ELB domain into separate action
 - [ ] Provide CF outputs in the action results
+- [ ] Print CF errors in action UI
 
 ## What this does under the hood
 
