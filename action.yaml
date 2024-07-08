@@ -4,9 +4,11 @@ inputs:
   aws_access_key_id:
     description: 'The AWS access key id'
     required: true
+    default: ""
   aws_secret_access_key:
     description: 'The AWS secret access key'
     required: true
+    default: ""
   # optional
   aws_region:
     description: 'The AWS region. Fallback to "eu-west-1"'
@@ -15,24 +17,31 @@ inputs:
   cf_stack_prefix:
     description: 'The prefix for the CloudFormation stack name. Fallback to repo name.'
     required: false
+    default: ""
   env_name:
     description: 'The environment (will be added as suffix to the stack prefix). Fallback to branch name.'
     required: false
+    default: ""
   domain:
     description: 'The domain. '
     required: false
+    default: ""
   domain_role_arn:
     description: 'The domain role ARN'
     required: false
+    default: ""
   cert_role_arn:
     description: 'The certificate role ARN'
     required: false
+    default: ""
   docker_compose_path:
     description: 'The docker compose path. Defaults to "docker-compose.yaml"'
     required: false
+    default: ""
   aws_compose_path:
     description: 'The AWS compose path. Defaults to "aws-compose-x.yaml"'
     required: false
+    default: ""
 
 runs:
   using: 'docker'
