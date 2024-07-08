@@ -5,6 +5,7 @@ import shutil
 from typing import Callable
 from pathlib import Path
 from datetime import datetime
+from pprint import pprint as pp
 import yaml
 import boto3
 from ecs_composex.ecs_composex import generate_full_template
@@ -372,7 +373,9 @@ build --parallel'''
         self._cf_update(template_modifier=self._cf_update_template_urls)
         self._cf_upload_to_s3(dir_path=self.cf_main_dir)
         self._cf_deploy()
+
         # todo: get output from cf stack: publicalbDNSName, publicalbLoadBalancerFullName
+        pp(self.cfd.get_stack_outputs(self.stack_name))
 
         # todo: create CNAME record with ELB as target
         # if self.domain is not None:

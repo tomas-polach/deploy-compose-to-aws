@@ -62,7 +62,7 @@ class CloudFormationDeployer:
 
     def create_or_update_stack(
             self,
-            stack_name,
+            stack_name: str,
             template_body: str | None = None,
             template_url: str | None = None,
             parameters: dict[str, str] = {},
@@ -104,3 +104,16 @@ class CloudFormationDeployer:
                 return False
             else:
                 raise err
+
+    def get_stack_outputs(self, stack_name: str) -> dict[str, str]:
+        response = self.cf_client.describe_stacks(StackName=stack_name)
+
+        stacks = response['Stacks']
+        if not stacks:
+            raise Exception(f"No stack found with name {stack_name}")
+
+        outputs = stacks[0].get('Outputs', [])
+        # Convert outputs to a dictionary for easier access
+        output_dict = {output['OutputKey']: output['OutputValue'] for output in outputs}
+
+        return output_dict
