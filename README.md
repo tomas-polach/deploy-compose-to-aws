@@ -8,16 +8,6 @@ Based ECS Compose X, this action handles the following:
 - Creates ECR repositories for locally built Docker images
 - Pushes local Docker images to ECR
 
-## Inputs
-
-### `cf-stack-name`
-
-**Optional** CloudFormation stack name. Defaults to the repository name.
-
-### `env-name`
-
-**Optional** Environment name. Defaults to the branch name.
-
 ## Example Usage
 
 ```yaml
@@ -27,22 +17,27 @@ on:
   push:
     branches:
       - main
-      - 'feature/*'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Deploy to AWS
         uses: tomas-polach/deploy-compose-to-aws@v1
         with:
-          aws_region: 'eu-west-1'
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: 'eu-west-1'
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 ```
+
+## Todos
+
+- [ ] Add examples
+- [ ] Print CF errors in action results
+- [ ] Provide CF outputs in the action results
 
 ## What this does under the hood
 

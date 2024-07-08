@@ -38,7 +38,7 @@ class Deployment:
         elb_domain_role_arn: str | None = None,
         elb_cert_role_arn: str | None = None,
         docker_compose_path: str = "docker-compose.yaml",
-        aws_compose_path: str = "aws-compose-x.yaml",
+        ecs_compose_x_path: str = "aws-compose-x.yaml",
         temp_dir: str | None = DEFAULT_TEMP_FILES,
         mutable_tags: bool = True,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
@@ -50,7 +50,7 @@ class Deployment:
         self.domain_role_arn = elb_domain_role_arn
         self.cert_role_arn = elb_cert_role_arn
         self.docker_compose_path = Path(docker_compose_path)
-        self.aws_compose_path = Path(aws_compose_path)
+        self.aws_compose_path = Path(ecs_compose_x_path)
         self.mutable_tags = mutable_tags
         self.image_uri_format = image_uri_format
 

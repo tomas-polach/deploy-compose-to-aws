@@ -9,11 +9,11 @@ inputs:
     description: 'The AWS secret access key'
     required: true
     default: ""
-  # optional
   aws-region:
     description: 'The AWS region. Fallback to "eu-west-1"'
-    required: false
+    required: true
     default: "eu-west-1"
+  # optional
   cf-stack-prefix:
     description: 'The prefix for the CloudFormation stack name. Fallback to repo name.'
     required: false
@@ -38,10 +38,14 @@ inputs:
     description: 'The docker compose path. Defaults to "docker-compose.yaml"'
     required: false
     default: ""
-  aws-compose-path:
+  ecs-compose-x-path:
     description: 'The AWS compose path. Defaults to "aws-compose-x.yaml"'
     required: false
     default: ""
+  ecr-keep-last-n-images:
+    description: 'The number of images to keep in the ECR repository. Defaults to 10.'
+    required: false
+    default: "10"
 
 runs:
   using: 'docker'
@@ -50,11 +54,14 @@ runs:
     AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
     AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
     AWS_REGION: ${{ inputs.aws-region }}
+    AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
   args:
     - --aws-region=${{ inputs.aws-region }}
     - --cf-stack-prefix=${{ inputs.cf-stack-prefix }}
-    - --environment=${{ inputs.env-name }}
+    - --env-name=${{ inputs.env-name }}
     - --docker-compose-path=${{ inputs.docker-compose-path }}
-    - --aws-compose-path=${{ inputs.aws-compose-path }}
+    - --ecs-compose-x-path=${{ inputs.ecs-compose-x-path }}
+    - --ecr-keep-last-n-images=${{ inputs.domain-role-arn }}
     - --elb-domain=${{ inputs.domain }}
     - --elb-domain-role-arn=${{ inputs.domain-role-arn }}
+
