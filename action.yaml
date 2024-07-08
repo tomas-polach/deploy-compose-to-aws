@@ -61,7 +61,7 @@ runs:
     - --env-name=${{ inputs.env-name }}
     - --docker-compose-path=${{ inputs.docker-compose-path }}
     - --ecs-compose-x-path=${{ inputs.ecs-compose-x-path }}
-    - --ecr-keep-last-n-images=${{ inputs.domain-role-arn }}
-    - --elb-domain=${{ inputs.domain }}
-    - --elb-domain-role-arn=${{ inputs.domain-role-arn }}
+    - --ecr-keep-last-n-images=${{ inputs.ecr-keep-last-n-images }}
+    - --elb-domain=${{ inputs.elb-domain }}
+    - --elb-domain-role-arn=${{ inputs.elb-domain-role-arn }}
 

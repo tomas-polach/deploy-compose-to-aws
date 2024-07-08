@@ -18,10 +18,13 @@ def main():
     parser.add_argument('--aws-region', type=str, required=True, help='The AWS region', default=os.getenv('INPUT_AWS_REGION'))
 
     parser.add_argument('--cf-stack-prefix', type=str, required=False, help='Prefix for the Cloudformation Stack')
-    parser.add_argument('--en-name', type=str, required=False,
+    parser.add_argument('--env-name', type=str, required=False,
                         help='The environment (will be added as suffix to the stack name)')
 
-    parser.add_argument('--ecr-keep-last-n-images', type=int, required=False, help='The number of images to keep in ECR')
+    parser.add_argument('--ecr-keep-last-n-images',
+                        type=int,
+                        default=10,
+                        required=False, help='The number of images to keep in ECR')
 
     parser.add_argument('--docker-compose-path', type=str, required=False,
                         help='The docker compose path')
@@ -63,8 +66,8 @@ def main():
         args_dict['cf_stack_prefix'] = git_repo_name
 
     # Use the provided environment or default to the branch name
-    if 'environment' not in args_dict and git_branch is not None:
-        args_dict['environment'] = git_branch
+    if 'env_name' not in args_dict and git_branch is not None:
+        args_dict['env_name'] = git_branch
 
     # change working dir
     os.chdir('/github/workspace')

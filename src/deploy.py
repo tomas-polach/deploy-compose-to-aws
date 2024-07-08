@@ -31,7 +31,7 @@ class Deployment:
     def __init__(self,
         cf_stack_prefix: str,
         aws_region: str,
-        environment: str = DEFAULT_ENVIRONMENT,
+        env_name: str = DEFAULT_ENVIRONMENT,
         git_branch: str | None = None,
         git_commit: str | None = None,
         elb_domain: str | None = None,
@@ -45,7 +45,7 @@ class Deployment:
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
     ):
         self.project_name = cf_stack_prefix
-        self.environment = environment
+        self.env_name = env_name
         self.aws_region = aws_region
         self.domain = elb_domain
         self.domain_role_arn = elb_domain_role_arn
@@ -57,9 +57,9 @@ class Deployment:
         self.image_uri_format = image_uri_format
 
         # compose internal params
-        self.stack_name = f"{self.project_name}-{self.environment}"
-        self.ci_stack_name = f"{self.project_name}-{self.environment}-ci"
-        self.ci_s3_bucket_name = f"{self.project_name}-{self.environment}-ci"
+        self.stack_name = f"{self.project_name}-{self.env_name}"
+        self.ci_stack_name = f"{self.project_name}-{self.env_name}-ci"
+        self.ci_s3_bucket_name = f"{self.project_name}-{self.env_name}-ci"
 
         if git_branch is not None and git_commit is not None:
             self.git_branch = git_branch
