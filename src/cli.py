@@ -53,6 +53,9 @@ def main():
     if args_dict['environment'] is None and git_branch is not None:
         args_dict['environment'] = git_branch
 
+    print('args_dict:')
+    pp(args_dict)
+
     # change working dir
     os.chdir('/github/workspace')
 
