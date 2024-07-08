@@ -65,7 +65,7 @@ class Deployment:
 
         if git_branch is not None and git_commit is not None:
             self.git_branch = git_branch
-            self.git_commit = git_commit
+            self.git_commit = git_commit[:8]
         else:
             self.git_branch, self.git_commit = Deployment._git_get_branch_and_hash()
         ts_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_") + generate_random_id(length=6)
