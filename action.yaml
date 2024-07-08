@@ -52,7 +52,6 @@ runs:
     AWS_REGION: ${{ inputs.aws_region }}
   args:
     - --aws-region=${{ inputs.aws_region }}
-    - --aws-access-key-id=${{ inputs.aws_access_key_id }}
     - --cf-stack-prefix=${{ inputs.cf_stack_prefix }}
     - --environment=${{ inputs.env_name }}
     - --docker-compose-path=${{ inputs.docker_compose_path }}
