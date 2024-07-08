@@ -2,6 +2,7 @@ import asyncio
 import json
 import subprocess
 import shutil
+import os
 from typing import Callable
 from pathlib import Path
 from datetime import datetime
@@ -73,6 +74,7 @@ class Deployment:
         self.temp_dir = Path(temp_dir) / ts_str
         self.cf_main_dir = Path(self.temp_dir) / 'cf_main'
         self.cf_main_dir.mkdir(exist_ok=True, parents=True)
+        self.cf_main_output_path = self.cf_main_dir / 'outputs.json'
 
         self.docker_compose_override_path = Path(self.temp_dir) / f"docker-compose.override.yaml"
 
@@ -382,7 +384,15 @@ build --parallel'''
         self._cf_deploy()
 
         # todo: get output from cf stack: publicalbDNSName, publicalbLoadBalancerFullName
-        pp(self.cfd.get_stack_outputs(self.stack_name))
+        cf_main_output = self.cfd.get_stack_outputs(self.stack_name)
+        pp(cf_main_output)
+        # Write outputs to a file
+        with self.cf_main_output_path.open('w') as f:
+            f.write(cf_main_output)
+
+        # Optionally, set an output to indicate the file path
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as gh_output:
+            gh_output.write(f'cf_outputs_path={self.cf_main_output_path}\n')
 
         # todo: create CNAME record with ELB as target
         # if self.domain is not None:

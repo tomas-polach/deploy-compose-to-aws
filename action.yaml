@@ -47,6 +47,10 @@ inputs:
     required: false
     default: "10"
 
+outputs:
+  cf_outputs_path:
+    description: 'A JSON string containing all CloudFormation outputs in JSON format'
+
 runs:
   using: 'docker'
   image: 'Dockerfile'
