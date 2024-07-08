@@ -1,24 +1,24 @@
 name: 'CloudFormation Deploy'
 description: 'Deploy to AWS CloudFormation using Python 3.11 and AWS CLI'
 inputs:
-  aws_access_key_id:
+  aws-access-key-id:
     description: 'The AWS access key id'
     required: true
     default: ""
-  aws_secret_access_key:
+  aws-secret-access-key:
     description: 'The AWS secret access key'
     required: true
     default: ""
   # optional
-  aws_region:
+  aws-region:
     description: 'The AWS region. Fallback to "eu-west-1"'
     required: false
     default: "eu-west-1"
-  cf_stack_prefix:
+  cf-stack-prefix:
     description: 'The prefix for the CloudFormation stack name. Fallback to repo name.'
     required: false
     default: ""
-  env_name:
+  env-name:
     description: 'The environment (will be added as suffix to the stack prefix). Fallback to branch name.'
     required: false
     default: ""
@@ -26,19 +26,19 @@ inputs:
     description: 'The domain. '
     required: false
     default: ""
-  domain_role_arn:
+  domain-role-arn:
     description: 'The domain role ARN'
     required: false
     default: ""
-  cert_role_arn:
+  cert-role-arn:
     description: 'The certificate role ARN'
     required: false
     default: ""
-  docker_compose_path:
+  docker-compose-path:
     description: 'The docker compose path. Defaults to "docker-compose.yaml"'
     required: false
     default: ""
-  aws_compose_path:
+  aws-compose-path:
     description: 'The AWS compose path. Defaults to "aws-compose-x.yaml"'
     required: false
     default: ""
