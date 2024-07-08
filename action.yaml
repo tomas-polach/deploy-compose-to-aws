@@ -22,12 +22,12 @@ inputs:
     description: 'The environment (will be added as suffix to the stack prefix). Fallback to branch name.'
     required: false
     default: ""
-  domain:
-    description: 'The domain. '
+  elb-domain:
+    description: 'The domain for the Elastic Load Balancer. A DNS record will be created for this domain and mapped to the ELB.'
     required: false
     default: ""
-  domain-role-arn:
-    description: 'The domain role ARN'
+  elb-domain-role-arn:
+    description: 'If your domain is in a different AWS account, you need to provide the role ARN to assume.'
     required: false
     default: ""
   cert-role-arn:
@@ -47,14 +47,14 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
   env:
-    AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
-    AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
-    AWS_REGION: ${{ inputs.aws_region }}
+    AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+    AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+    AWS_REGION: ${{ inputs.aws-region }}
   args:
-    - --aws-region=${{ inputs.aws_region }}
-    - --cf-stack-prefix=${{ inputs.cf_stack_prefix }}
-    - --environment=${{ inputs.env_name }}
-    - --docker-compose-path=${{ inputs.docker_compose_path }}
-    - --aws-compose-path=${{ inputs.aws_compose_path }}
+    - --aws-region=${{ inputs.aws-region }}
+    - --cf-stack-prefix=${{ inputs.cf-stack-prefix }}
+    - --environment=${{ inputs.env-name }}
+    - --docker-compose-path=${{ inputs.docker-compose-path }}
+    - --aws-compose-path=${{ inputs.aws-compose-path }}
     - --elb-domain=${{ inputs.domain }}
-    - --elb-domain-role-arn=${{ inputs.domain_role_arn }}
+    - --elb-domain-role-arn=${{ inputs.domain-role-arn }}
