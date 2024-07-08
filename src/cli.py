@@ -28,7 +28,7 @@ def main():
 
     parser.add_argument('--docker-compose-path', type=str, required=False,
                         help='The docker compose path')
-    parser.add_argument('--aws-compose-path', type=str, required=False,
+    parser.add_argument('--ecs-compose-x-path', type=str, required=False,
                         help='The AWS compose path')
 
     parser.add_argument('--elb-domain', type=str, required=False, help='The domain to map to elastic load balancer')
