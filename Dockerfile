@@ -21,6 +21,13 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     ./aws/install && \
     rm -rf awscliv2.zip aws
 
+# Install docker-compose
+RUN curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
+    chmod +x /usr/local/bin/docker-compose
+
+# Verify docker-compose installation
+RUN docker-compose --version
+
 # Set the working directory
 WORKDIR /action
 
@@ -32,7 +39,7 @@ COPY action.yaml ./action.yaml
 COPY src/ ./src/
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r ./src/requirements.txt -q
+RUN pip install --no-cache-dir -r ./src/requirements.txt
 
 # Set the entrypoint to run the Python script as a module
 ENTRYPOINT ["python", "-m", "src.cli"]
