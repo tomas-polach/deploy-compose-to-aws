@@ -1,6 +1,12 @@
 # CloudFormation Deploy Action
 
-This action deploys to AWS CloudFormation using Python 3.11 and AWS CLI.
+⚠️ WORK IN PROGRESS ⚠️
+
+This action deploys a Docker Compose file to AWS ECS using CloudFormation.
+Based ECS Compose X, this action handles the following:
+- Builds local Docker images
+- Creates ECR repositories for locally built Docker images
+- Pushes local Docker images to ECR
 
 ## Inputs
 
