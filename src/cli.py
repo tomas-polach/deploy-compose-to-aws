@@ -8,7 +8,7 @@ from src.deploy import Deployment
 
 
 def main():
-    print(os.getenv('AWS_ACCESS_KEY_ID'))
+    print('AWS_ACCESS_KEY_ID', os.getenv('AWS_ACCESS_KEY_ID'))
 
     # just print all the raw args from the cli
     parser = argparse.ArgumentParser(description='RuDeploy to Docker Compose to AWS')
