@@ -71,6 +71,10 @@ def main():
 
     # change working dir
     os.chdir('/github/workspace')
+    # name current working dir
+    print('CH DIR', os.getcwd())
+    # list working dir contents
+    print('LIST DIR', print(os.listdir()))
 
     dep = Deployment(**args_dict)
     asyncio.run(dep.run())
