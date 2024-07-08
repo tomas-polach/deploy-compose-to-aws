@@ -9,9 +9,6 @@ from src.deploy import Deployment
 
 def main():
     # just print all the raw args from the cli
-    for arg in sys.argv:
-        print('ARGGGG:', arg)
-
     parser = argparse.ArgumentParser(description='RuDeploy to Docker Compose to AWS')
 
     parser.add_argument('--aws-region', type=str, required=True, help='The AWS region', default=os.getenv('INPUT_AWS_REGION'))
@@ -36,13 +33,23 @@ def main():
         if v != '' and v is not None
     }
 
+    # Get branch name and commit hash
+    git_branch = os.getenv('GITHUB_REF', None)
+    if git_branch is not None:
+        git_branch = git_branch.split('/')[-1]
+        args_dict['git_branch'] = git_branch
+
+    git_commit = os.getenv('GITHUB_SHA', None)
+    if git_commit is not None:
+        args_dict['git_commit'] = git_commit
+
     # Use the provided project_name or default to the repository name
     if args_dict['cf_stack_prefix'] is None:
         args_dict['cf_stack_prefix'] = os.getenv('GITHUB_REPOSITORY', 'default-repo').split('/')[-1]
 
     # Use the provided environment or default to the branch name
-    if args_dict['environment'] is None:
-        args_dict['environment'] = os.getenv('GITHUB_REF', 'refs/heads/default-branch').split('/')[-1]
+    if args_dict['environment'] is None and git_branch is not None:
+        args_dict['environment'] = git_branch
 
     # change working dir
     os.chdir('/github/workspace')

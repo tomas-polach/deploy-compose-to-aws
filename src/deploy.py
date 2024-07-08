@@ -31,6 +31,8 @@ class Deployment:
         cf_stack_prefix: str,
         aws_region: str,
         environment: str = DEFAULT_ENVIRONMENT,
+        git_branch: str | None = None,
+        git_commit: str | None = None,
         elb_domain: str | None = None,
         elb_domain_role_arn: str | None = None,
         elb_cert_role_arn: str | None = None,
@@ -56,7 +58,11 @@ class Deployment:
         self.ci_stack_name = f"{self.project_name}-{self.environment}-ci"
         self.ci_s3_bucket_name = f"{self.project_name}-{self.environment}-ci"
 
-        self.git_branch, self.git_commit = Deployment._git_get_branch_and_hash()
+        if git_branch is not None and git_commit is not None:
+            self.git_branch = git_branch
+            self.git_commit = git_commit
+        else:
+            self.git_branch, self.git_commit = Deployment._git_get_branch_and_hash()
         ts_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_") + generate_random_id(length=6)
 
         self.ci_s3_key_prefix = f'{self.stack_name}/{ts_str}'
