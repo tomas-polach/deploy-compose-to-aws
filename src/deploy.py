@@ -8,6 +8,7 @@ from datetime import datetime
 from pprint import pprint as pp
 import yaml
 import boto3
+from slugify import slugify
 from ecs_composex.ecs_composex import generate_full_template
 from ecs_composex.common.settings import ComposeXSettings
 from ecs_composex.common.stacks import process_stacks
@@ -44,8 +45,8 @@ class Deployment:
         mutable_tags: bool = True,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
     ):
-        self.project_name = cf_stack_prefix
-        self.env_name = env_name
+        self.project_name = slugify(cf_stack_prefix)
+        self.env_name = slugify(env_name)
         self.aws_region = aws_region
         self.domain = elb_domain
         self.domain_role_arn = elb_domain_role_arn
@@ -213,6 +214,7 @@ class Deployment:
                 aws_account_id=self.aws_account_id,
                 aws_region=self.aws_region,
                 project_name=self.project_name,
+                env_name=self.env_name,
                 stack_name=self.stack_name,
                 service_name=service_name,
                 git_branch=self.git_branch,
