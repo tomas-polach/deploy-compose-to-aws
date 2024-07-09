@@ -25,8 +25,8 @@ logger = get_logger(__name__)
 
 DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}:{git_commit}"
 DEFAULT_ENVIRONMENT = "dev"
-DEFAULT_TEMP_FILES = "deployment/tmp"
-DEFAULT_ECS_COMPOSEX_OUTPUT_DIR = f"{DEFAULT_TEMP_FILES}/cf_output"
+DEFAULT_TEMP_DIR = "_deployment_tmp"
+DEFAULT_ECS_COMPOSEX_OUTPUT_DIR = f"{DEFAULT_TEMP_DIR}/cf_output"
 
 
 class Deployment:
@@ -38,10 +38,9 @@ class Deployment:
         git_commit: str | None = None,
         elb_domain: str | None = None,
         elb_domain_role_arn: str | None = None,
-        elb_cert_role_arn: str | None = None,
         docker_compose_path: str = "docker-compose.yaml",
         ecs_compose_x_path: str = "aws-compose-x.yaml",
-        temp_dir: str | None = DEFAULT_TEMP_FILES,
+        temp_dir: str | None = DEFAULT_TEMP_DIR,
         ecr_keep_last_n_images: int | None = 10,
         mutable_tags: bool = True,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
@@ -51,7 +50,6 @@ class Deployment:
         self.aws_region = aws_region
         self.domain = elb_domain
         self.domain_role_arn = elb_domain_role_arn
-        self.cert_role_arn = elb_cert_role_arn
         self.docker_compose_path = Path(docker_compose_path)
         self.aws_compose_path = Path(ecs_compose_x_path)
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
@@ -371,7 +369,6 @@ build --parallel'''
         if self.domain is not None:
             dsm = DNSAndSSLCertManager(
                 cert_region_name=self.aws_region,
-                cert_role_arn=self.cert_role_arn,
                 domain_role_arn=self.domain_role_arn,
             )
             cert_arn = dsm.get_or_create_ssl_cert(subdomain=self.domain)
