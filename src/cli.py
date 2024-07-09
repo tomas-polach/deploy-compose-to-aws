@@ -41,8 +41,8 @@ def main():
 
     # Convert ECS Compose X substitutes JSON string to a dictionary
     if 'ecs_compose_x_sub' in args_dict:
-        args_dict.pop('ecs_compose_x_sub')
         args_dict['ecs_compose_x_substitutes'] = json.loads(args_dict['ecs_compose_x_sub'])
+        args_dict.pop('ecs_compose_x_sub')
 
     pp(args_dict)
 
