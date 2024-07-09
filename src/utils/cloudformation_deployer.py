@@ -13,8 +13,8 @@ class CloudFormationDeployer:
         "CAPABILITY_AUTO_EXPAND",
     ]
 
-    def __init__(self):
-        self.cf_client = boto3.client('cloudformation')
+    def __init__(self, region_name: str):
+        self.cf_client = boto3.client('cloudformation', region_name=region_name)
 
     def stack_exists(self, stack_name) -> bool:
         try:

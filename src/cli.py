@@ -1,5 +1,5 @@
 import os
-import sys
+import re
 import argparse
 import asyncio
 from pprint import pprint as pp
@@ -7,32 +7,36 @@ from pprint import pprint as pp
 from src.deploy import Deployment
 
 
-def main():
-    for arg in sys.argv:
-        print("ARG", arg)
-    print("ENV", os.getenv('AWS_ACCESS_KEY_ID'))
+def parse_substitutes(substitutes):
+    """Parses key-value pairs."""
+    pattern = re.compile(r"(\w+)=['\"]?([^'\"]+)['\"]?")
+    matches = pattern.findall(substitutes)
+    substitutes_dict = {}
+    for key, value in matches:
+        substitutes_dict[key.strip()] = value.strip()
+    return substitutes_dict
 
+
+def main():
     # just print all the raw args from the cli
     parser = argparse.ArgumentParser(description='RuDeploy to Docker Compose to AWS')
-
-    parser.add_argument('--aws-region', type=str, required=True, help='The AWS region', default=os.getenv('INPUT_AWS_REGION'))
 
     parser.add_argument('--cf-stack-prefix', type=str, required=False, help='Prefix for the Cloudformation Stack')
     parser.add_argument('--env-name', type=str, required=False,
                         help='The environment (will be added as suffix to the stack name)')
-
-    parser.add_argument('--ecr-keep-last-n-images',
-                        type=int,
-                        default=10,
-                        required=False, help='The number of images to keep in ECR')
 
     parser.add_argument('--docker-compose-path', type=str, required=False,
                         help='The docker compose path')
     parser.add_argument('--ecs-compose-x-path', type=str, required=False,
                         help='The AWS compose path')
 
-    parser.add_argument('--elb-domain', type=str, required=False, help='The domain to map to elastic load balancer')
-    parser.add_argument('--elb-domain-role-arn', type=str, required=False, help='The domain role ARN')
+    parser.add_argument('--ecs-compose-x-sub', action='append', type=str, required=False,
+                        help='ECS Compose X substitutes in the format key=value')
+
+    parser.add_argument('--ecr-keep-last-n-images',
+                        type=int,
+                        default=10,
+                        required=False, help='The number of images to keep in ECR')
 
     args = parser.parse_args()
     # Convert argument names with dashes to underscores
@@ -42,7 +46,13 @@ def main():
         if v != '' and v is not None
     }
 
-    print('args_dict:')
+    # Convert ECS Compose X substitutes to a dictionary
+    if 'ecs_compose_x_sub' in args_dict:
+        ecs_substitutes_dict = {}
+        for substitute in args_dict.pop('ecs_compose_x_sub'):
+            ecs_substitutes_dict.update(parse_substitutes(substitute))
+        args_dict['ecs_compose_x_substitutes'] = ecs_substitutes_dict
+
     pp(args_dict)
 
     # Get branch name and commit hash
@@ -69,12 +79,15 @@ def main():
     if 'env_name' not in args_dict and git_branch is not None:
         args_dict['env_name'] = git_branch
 
-    # change working dir
-    os.chdir('/github/workspace')
-    # name current working dir
-    print('CH DIR', os.getcwd())
-    # list working dir contents
-    print('LIST DIR', print(os.listdir()))
+    # change working dir when running in github actions
+    if os.getenv('GITHUB_ACTIONS') == 'true':
+        os.chdir('/github/workspace')
+
+    # check if aws region is set
+    if 'AWS_REGION' not in os.environ:
+        raise ValueError('AWS_REGION environment variable is not set')
+    # get aws region from env vars
+    args_dict['aws_region'] = os.getenv('AWS_REGION')
 
     dep = Deployment(**args_dict)
     asyncio.run(dep.run())

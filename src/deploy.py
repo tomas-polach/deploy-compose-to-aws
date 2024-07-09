@@ -3,6 +3,7 @@ import json
 import subprocess
 import shutil
 import os
+import string
 from typing import Callable
 from pathlib import Path
 from datetime import datetime
@@ -17,7 +18,6 @@ from src.utils.cloudformation_deployer import CloudFormationDeployer
 from src.utils.logger import get_logger
 from src.utils.to_pascal_case import to_pascal_case
 from src.utils.generate_random_id import generate_random_id
-from src.setup_dns_and_ssl import DNSAndSSLCertManager
 
 
 logger = get_logger(__name__)
@@ -36,22 +36,20 @@ class Deployment:
         env_name: str = DEFAULT_ENVIRONMENT,
         git_branch: str | None = None,
         git_commit: str | None = None,
-        elb_domain: str | None = None,
-        elb_domain_role_arn: str | None = None,
         docker_compose_path: str = "docker-compose.yaml",
-        ecs_compose_x_path: str = "aws-compose-x.yaml",
-        temp_dir: str | None = DEFAULT_TEMP_DIR,
+        ecs_compose_x_path: str = "ecs-compose-x.yaml",
+        ecs_compose_x_substitutes: dict = {},
         ecr_keep_last_n_images: int | None = 10,
         mutable_tags: bool = True,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
+        temp_dir: str | None = DEFAULT_TEMP_DIR,
     ):
         self.project_name = slugify(cf_stack_prefix)
         self.env_name = slugify(env_name)
         self.aws_region = aws_region
-        self.domain = elb_domain
-        self.domain_role_arn = elb_domain_role_arn
         self.docker_compose_path = Path(docker_compose_path)
-        self.aws_compose_path = Path(ecs_compose_x_path)
+        self.ecs_compose_orig_path = Path(ecs_compose_x_path)
+        self.ecs_compose_x_substitutes = ecs_compose_x_substitutes
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.mutable_tags = mutable_tags
         self.image_uri_format = image_uri_format
@@ -74,12 +72,16 @@ class Deployment:
         self.cf_main_dir.mkdir(exist_ok=True, parents=True)
         self.cf_main_output_path = self.cf_main_dir / 'outputs.json'
 
+        self.ecs_compose_path = Path(self.cf_main_dir) / self.ecs_compose_orig_path.name
+        # create a working copy of the ecs-compose-x.yaml file for subsequent modifications
+        shutil.copy(self.ecs_compose_orig_path, self.ecs_compose_path)
+
         self.docker_compose_override_path = Path(self.temp_dir) / f"docker-compose.override.yaml"
 
         self.aws_account_id = Deployment._aws_get_account_id()
-        self.ecs_client = boto3.client("ecs")
-        self.s3_client = boto3.client("s3")
-        self.cfd = CloudFormationDeployer()
+        self.ecs_client = boto3.client("ecs", region_name=self.aws_region)
+        self.s3_client = boto3.client("s3", region_name=self.aws_region)
+        self.cfd = CloudFormationDeployer(region_name=self.aws_region)
 
     @staticmethod
     def _aws_get_account_id() -> str:
@@ -259,6 +261,13 @@ build --parallel'''
             for image_uri in image_uris
         ])
 
+    def _cf_handle_placeholders(self):
+        with self.ecs_compose_orig_path.open('r') as f:
+            text = f.read()
+        text = string.Template(text).substitute(self.ecs_compose_x_substitutes)
+        with self.ecs_compose_path.open('w') as f:
+            f.write(text)
+
     def _cf_generate(self):
         logger.debug(f"Generating CloudFormation template from Docker Compose ...")
         ecx_settings = ComposeXSettings(
@@ -270,7 +279,7 @@ build --parallel'''
             DockerComposeXFile=[
                 self.docker_compose_path,
                 self.docker_compose_override_path,
-                self.aws_compose_path,
+                self.ecs_compose_path,
             ],
             OutputDirectory=str(self.cf_main_dir),
         )
@@ -294,16 +303,17 @@ build --parallel'''
     def _cf_update_template_urls(self, cf_template_by_filename: dict[str, dict]) -> dict[str, dict]:
         for cf_filename, cf_template in cf_template_by_filename.items():
             # for all resources
-            for r_name, r_params in cf_template["Resources"].items():
-                # update TemplateURLs
-                if r_params.get("Type") == "AWS::CloudFormation::Stack" and "TemplateURL" in r_params["Properties"]:
-                    # get filename of current TemplateURL
-                    filename = r_params["Properties"]["TemplateURL"].split('/')[-1]
-                    # set TemplateURL to S3 target
-                    r_params["Properties"]["TemplateURL"] = self._cf_get_template_url(
-                        dir_path=self.cf_main_dir,
-                        filename=filename,
-                    )
+            if 'Resources' in cf_template:
+                for r_name, r_params in cf_template["Resources"].items():
+                    # update TemplateURLs
+                    if r_params.get("Type") == "AWS::CloudFormation::Stack" and "TemplateURL" in r_params["Properties"]:
+                        # get filename of current TemplateURL
+                        filename = r_params["Properties"]["TemplateURL"].split('/')[-1]
+                        # set TemplateURL to S3 target
+                        r_params["Properties"]["TemplateURL"] = self._cf_get_template_url(
+                            dir_path=self.cf_main_dir,
+                            filename=filename,
+                        )
         return cf_template_by_filename
 
     def _cf_upload_to_s3(self, dir_path: Path):
@@ -364,23 +374,14 @@ build --parallel'''
         await self._docker_login_ecr()
         await self._docker_build_tag_push(image_uris=list(docker_image_uri_by_service_name.values()))
 
-        # SSL cert
-        cert_arn = None
-        if self.domain is not None:
-            dsm = DNSAndSSLCertManager(
-                cert_region_name=self.aws_region,
-                domain_role_arn=self.domain_role_arn,
-            )
-            cert_arn = dsm.get_or_create_ssl_cert(subdomain=self.domain)
-            logger.debug(f"SSL cert ARN: {cert_arn}")
-
         # CloudFormation: main stack
+        self._cf_handle_placeholders()
         self._cf_generate()
         self._cf_update(template_modifier=self._cf_update_template_urls)
+        return
         self._cf_upload_to_s3(dir_path=self.cf_main_dir)
         self._cf_deploy()
 
-        # todo: get output from cf stack: publicalbDNSName, publicalbLoadBalancerFullName
         cf_main_output = self.cfd.get_stack_outputs(self.stack_name)
         pp(cf_main_output)
         # Write outputs to a file
@@ -390,11 +391,6 @@ build --parallel'''
         # Optionally, set an output to indicate the file path
         with open(os.environ['GITHUB_OUTPUT'], 'a') as gh_output:
             gh_output.write(f'cf_outputs_path={self.cf_main_output_path}\n')
-
-        # todo: create CNAME record with ELB as target
-        # if self.domain is not None:
-        #     # todo: get elb domain from cf stack outputs
-        #     dsm.add_cname_record(subdomain=self.domain, target=self.stack_name)
 
         # delete temp dir
         if keep_temp_files is not True:

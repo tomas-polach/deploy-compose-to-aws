@@ -12,6 +12,7 @@ local.env
 
 cache/*
 tmp/*
+_deployment_tmp/*
 
 .astro
 .vscode
