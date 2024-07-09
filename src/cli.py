@@ -41,10 +41,12 @@ def main():
 
     # Convert ECS Compose X substitutes JSON string to a dictionary
     if 'ecs_compose_x_sub' in args_dict:
-        args_dict['ecs_compose_x_substitutes'] = json.loads(args_dict['ecs_compose_x_sub'])
+        # validate the JSON string before converting to a dictionary
+        try:
+            args_dict['ecs_compose_x_substitutes'] = json.loads(args_dict['ecs_compose_x_sub'])
+        except json.JSONDecodeError:
+            raise ValueError('Invalid JSON string provided for ECS Compose X substitutes')
         args_dict.pop('ecs_compose_x_sub')
-
-    pp(args_dict)
 
     # Get branch name and commit hash
     git_repo_name = os.getenv('GITHUB_REPOSITORY', None)

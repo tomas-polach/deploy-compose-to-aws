@@ -44,6 +44,8 @@ class Deployment:
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
         temp_dir: str | None = DEFAULT_TEMP_DIR,
     ):
+        print('REGION:', aws_region)
+
         self.project_name = slugify(cf_stack_prefix)
         self.env_name = slugify(env_name)
         self.aws_region = aws_region
