@@ -1,19 +1,6 @@
 name: 'CloudFormation Deploy'
 description: 'Deploy to AWS CloudFormation using Python 3.11 and AWS CLI'
 inputs:
-  aws-access-key-id:
-    description: 'The AWS access key id'
-    required: true
-    default: ""
-  aws-secret-access-key:
-    description: 'The AWS secret access key'
-    required: true
-    default: ""
-  aws-region:
-    description: 'The AWS region. Fallback to "eu-west-1"'
-    required: true
-    default: "eu-west-1"
-  # optional
   cf-stack-prefix:
     description: 'The prefix for the CloudFormation stack name. Fallback to repo name.'
     required: false
@@ -22,22 +9,14 @@ inputs:
     description: 'The environment (will be added as suffix to the stack prefix). Fallback to branch name.'
     required: false
     default: ""
-  elb-domain:
-    description: 'The domain for the Elastic Load Balancer. A DNS record will be created for this domain and mapped to the ELB.'
-    required: false
-    default: ""
-  elb-domain-role-arn:
-    description: 'If your domain is in a different AWS account, you need to provide the role ARN to assume.'
-    required: false
-    default: ""
-  cert-role-arn:
-    description: 'The certificate role ARN'
-    required: false
-    default: ""
   docker-compose-path:
     description: 'The docker compose path. Defaults to "docker-compose.yaml"'
     required: false
     default: ""
+  ecs-compose-x-sub:
+    description: 'A JSON string containing the ECS compose substitutes. Defaults to "{}"'
+    required: false
+    default: "{}"
   ecs-compose-x-path:
     description: 'The AWS compose path. Defaults to "aws-compose-x.yaml"'
     required: false
@@ -58,14 +37,12 @@ runs:
     AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
     AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
     AWS_REGION: ${{ inputs.aws-region }}
-    AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
   args:
     - --aws-region=${{ inputs.aws-region }}
     - --cf-stack-prefix=${{ inputs.cf-stack-prefix }}
     - --env-name=${{ inputs.env-name }}
     - --docker-compose-path=${{ inputs.docker-compose-path }}
+    - --ecs-compose-x-sub=${{ inputs.ecs-compose-x-sub }}
     - --ecs-compose-x-path=${{ inputs.ecs-compose-x-path }}
     - --ecr-keep-last-n-images=${{ inputs.ecr-keep-last-n-images }}
-    - --elb-domain=${{ inputs.elb-domain }}
-    - --elb-domain-role-arn=${{ inputs.elb-domain-role-arn }}
 

@@ -1,20 +1,11 @@
 import os
 import re
+import json
 import argparse
 import asyncio
 from pprint import pprint as pp
 
 from src.deploy import Deployment
-
-
-def parse_substitutes(substitutes):
-    """Parses key-value pairs."""
-    pattern = re.compile(r"(\w+)=['\"]?([^'\"]+)['\"]?")
-    matches = pattern.findall(substitutes)
-    substitutes_dict = {}
-    for key, value in matches:
-        substitutes_dict[key.strip()] = value.strip()
-    return substitutes_dict
 
 
 def main():
@@ -30,8 +21,10 @@ def main():
     parser.add_argument('--ecs-compose-x-path', type=str, required=False,
                         help='The AWS compose path')
 
-    parser.add_argument('--ecs-compose-x-sub', action='append', type=str, required=False,
-                        help='ECS Compose X substitutes in the format key=value')
+    parser.add_argument('--ecs-compose-x-sub', type=str, required=False,
+                        default='{}',
+                        help='ECS Compose X substitutes in the format key=value',
+                        )
 
     parser.add_argument('--ecr-keep-last-n-images',
                         type=int,
@@ -46,12 +39,10 @@ def main():
         if v != '' and v is not None
     }
 
-    # Convert ECS Compose X substitutes to a dictionary
+    # Convert ECS Compose X substitutes JSON string to a dictionary
     if 'ecs_compose_x_sub' in args_dict:
-        ecs_substitutes_dict = {}
-        for substitute in args_dict.pop('ecs_compose_x_sub'):
-            ecs_substitutes_dict.update(parse_substitutes(substitute))
-        args_dict['ecs_compose_x_substitutes'] = ecs_substitutes_dict
+        args_dict.pop('ecs_compose_x_sub')
+        args_dict['ecs_compose_x_substitutes'] = json.loads(args_dict['ecs_compose_x_sub'])
 
     pp(args_dict)
 
