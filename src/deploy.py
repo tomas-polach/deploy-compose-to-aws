@@ -38,20 +38,20 @@ class Deployment:
         git_commit: str | None = None,
         docker_compose_path: str = "docker-compose.yaml",
         ecs_compose_x_path: str = "ecs-compose-x.yaml",
-        ecs_compose_x_substitutes: dict = {},
+        ecs_compose_x_sub: dict = {},
         ecr_keep_last_n_images: int | None = 10,
         mutable_tags: bool = True,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
         temp_dir: str | None = DEFAULT_TEMP_DIR,
     ):
-        print('REGION:', aws_region)
+        pp(ecs_compose_x_sub)
 
         self.project_name = slugify(cf_stack_prefix)
         self.env_name = slugify(env_name)
         self.aws_region = aws_region
         self.docker_compose_path = Path(docker_compose_path)
         self.ecs_compose_orig_path = Path(ecs_compose_x_path)
-        self.ecs_compose_x_substitutes = ecs_compose_x_substitutes
+        self.ecs_compose_x_subs = ecs_compose_x_sub
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.mutable_tags = mutable_tags
         self.image_uri_format = image_uri_format
@@ -74,9 +74,7 @@ class Deployment:
         self.cf_main_dir.mkdir(exist_ok=True, parents=True)
         self.cf_main_output_path = self.cf_main_dir / 'outputs.json'
 
-        self.ecs_compose_path = Path(self.cf_main_dir) / self.ecs_compose_orig_path.name
-        # create a working copy of the ecs-compose-x.yaml file for subsequent modifications
-        shutil.copy(self.ecs_compose_orig_path, self.ecs_compose_path)
+        self.ecs_compose_path = Path(self.temp_dir) / self.ecs_compose_orig_path.name
 
         self.docker_compose_override_path = Path(self.temp_dir) / f"docker-compose.override.yaml"
 
@@ -266,7 +264,7 @@ build --parallel'''
     def _cf_handle_placeholders(self):
         with self.ecs_compose_orig_path.open('r') as f:
             text = f.read()
-        text = string.Template(text).substitute(self.ecs_compose_x_substitutes)
+        text = string.Template(text).substitute(self.ecs_compose_x_subs)
         with self.ecs_compose_path.open('w') as f:
             f.write(text)
 

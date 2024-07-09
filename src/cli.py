@@ -43,10 +43,9 @@ def main():
     if 'ecs_compose_x_sub' in args_dict:
         # validate the JSON string before converting to a dictionary
         try:
-            args_dict['ecs_compose_x_substitutes'] = json.loads(args_dict['ecs_compose_x_sub'])
+            args_dict['ecs_compose_x_sub'] = json.loads(args_dict['ecs_compose_x_sub'])
         except json.JSONDecodeError:
             raise ValueError('Invalid JSON string provided for ECS Compose X substitutes')
-        args_dict.pop('ecs_compose_x_sub')
 
     # Get branch name and commit hash
     git_repo_name = os.getenv('GITHUB_REPOSITORY', None)
@@ -80,7 +79,7 @@ def main():
     if 'AWS_REGION' not in os.environ:
         raise ValueError('AWS_REGION environment variable is not set')
     # get aws region from env vars
-    args_dict['aws_region'] = os.getenv('AWS_REGION')
+    args_dict['aws_region'] = os.getenv('AWS_DEFAULT_REGION')
 
     dep = Deployment(**args_dict)
     asyncio.run(dep.run())
