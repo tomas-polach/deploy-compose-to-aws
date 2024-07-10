@@ -284,10 +284,8 @@ docker-compose \
 build --parallel'''
         await Deployment._cmd_run_async(build_cmd)
 
-        # Compute the digest and tag the images with the digest
-        image_digests = {}
+        # Compute the digest and tag the images with a tag that includes the digest
         for image_uri in image_uris:
-            service_name = image_uri.split('/')[-1]
             # Tag the image temporarily with a simple tag
             temp_tag = f"{image_uri}:temp"
             tag_cmd = f"docker tag {image_uri} {temp_tag}"
@@ -301,14 +299,21 @@ build --parallel'''
             digest_cmd = f"docker inspect --format='{{{{index .RepoDigests 0}}}}' {temp_tag}"
             digest = await Deployment._cmd_run_async(digest_cmd)
             digest = digest.split('@')[-1].strip()
-            image_digests[service_name] = f"{image_uri}@{digest}"
 
-        # Push images with the digest tag
-        logger.debug(f"Pushing docker images with digest tags...")
-        await asyncio.gather(*[
-            Deployment._cmd_run_async(f"docker push {digest}")
-            for digest in image_digests.values()
-        ])
+            # Create a new tag that includes the digest
+            new_tag = f"{image_uri}:sha-{digest[:12]}"  # Use a prefix and the first 12 characters of the digest
+            new_tag_cmd = f"docker tag {temp_tag} {new_tag}"
+            await Deployment._cmd_run_async(new_tag_cmd)
+
+            # Push the new tag to ECR
+            push_new_tag_cmd = f"docker push {new_tag}"
+            await Deployment._cmd_run_async(push_new_tag_cmd)
+
+            # Optionally, remove the temporary tag
+            remove_temp_tag_cmd = f"docker rmi {temp_tag}"
+            await Deployment._cmd_run_async(remove_temp_tag_cmd)
+
+        logger.debug("Docker images have been successfully pushed with digest tags.")
 
 
     def _cf_handle_placeholders(self):
