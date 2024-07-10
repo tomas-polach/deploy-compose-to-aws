@@ -190,6 +190,8 @@ class Deployment:
         }
 
         # create ECR repositories
+        print('UNIQUE REPO NAMES')
+        pp(unique_repo_names)
         for repo_name in unique_repo_names:
             resource_name = to_pascal_case(f'{repo_name}-repository')
             cf_template['Resources'][resource_name] = {
