@@ -89,7 +89,10 @@ class Deployment:
 
         # CloudFormation: ci stack (ECR repos for locally built docker images and ci bucket)
         # note: ci cf template can't be uploaded to S3 because the ci bucket will be created in the ci stack
-        unique_repo_names = list(set(map(self._docker_get_repo_name_from_uri, docker_image_uri_by_service_name)))
+        unique_repo_names = list(set(map(
+            self._docker_get_repo_name_from_uri,
+            docker_image_uri_by_service_name.values()
+        )))
         cf_ci_template = self._cf_ci_generate(
             unique_repo_names=unique_repo_names,
             ecr_keep_last_n_images=self.ecr_keep_last_n_images,
@@ -190,8 +193,6 @@ class Deployment:
         }
 
         # create ECR repositories
-        print('UNIQUE REPO NAMES')
-        pp(unique_repo_names)
         for repo_name in unique_repo_names:
             resource_name = to_pascal_case(f'{repo_name}-repository')
             cf_template['Resources'][resource_name] = {
