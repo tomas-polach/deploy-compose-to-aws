@@ -91,8 +91,9 @@ class Deployment:
 
         # CloudFormation: ci stack (ECR repos for locally built docker images and ci bucket)
         # note: ci cf template can't be uploaded to S3 because the ci bucket will be created in the ci stack
+        unique_repo_names = list(set(map(self._docker_get_repo_name_from_uri, docker_image_uri_by_service_name)))
         cf_ci_template = self._cf_ci_generate(
-            image_uris=list(docker_image_uri_by_service_name.values()),
+            unique_repo_names=unique_repo_names,
             ecr_keep_last_n_images=self.ecr_keep_last_n_images,
         )
         self._cf_ci_deploy(cf_ci_template)
@@ -100,9 +101,9 @@ class Deployment:
         # Docker:
         # generate docker-compose.override.yaml which will add docker image URIs to services with local docker builds,
         # so that docker knows where to push the locally built images to
-        self._docker_generate_override_file(docker_image_uri_by_service_name)
         await self._docker_login_ecr()
         await self._docker_build_tag_push(image_uris=list(docker_image_uri_by_service_name.values()))
+        self._docker_generate_override_file(docker_image_uri_by_service_name)
 
         # CloudFormation: main stack
         self._cf_handle_placeholders()
@@ -173,7 +174,7 @@ class Deployment:
         cmd = f"docker login --username AWS --password-stdin {self.aws_account_id}.dkr.ecr.{self.aws_region}.amazonaws.com"
         await Deployment._cmd_run_async(cmd, input=password.encode())
 
-    def _cf_ci_generate(self, image_uris: list[str], ecr_keep_last_n_images: int | None = 10) -> dict[str, dict]:
+    def _cf_ci_generate(self, unique_repo_names: list[str], ecr_keep_last_n_images: int | None = 10) -> dict[str, dict]:
         cf_template = {
             "AWSTemplateFormatVersion": "2010-09-09",
             "Resources": {
@@ -191,7 +192,6 @@ class Deployment:
         }
 
         # create ECR repositories
-        unique_repo_names = list(set(map(self._docker_get_repo_name_from_uri, image_uris)))
         for repo_name in unique_repo_names:
             resource_name = to_pascal_case(f'{repo_name}-repository')
             cf_template['Resources'][resource_name] = {
@@ -288,6 +288,13 @@ docker-compose \
 -f "{str(self.docker_compose_override_path)}" \
 build --parallel'''
         await Deployment._cmd_run_async(build_cmd)
+
+        # get docker image digest for each image
+        image_digest_by_uri = {}
+        for image_uri in image_uris:
+            cmd = f"docker inspect --format='{{{{.RepoDigests}}}}' {image_uri}"
+            result = await Deployment._cmd_run_async(cmd)
+            image_digest_by_uri[image_uri] = result.strip().split('@')[-1]
 
         # Push images
         logger.debug(f"Pushing docker images ...")
@@ -390,10 +397,25 @@ build --parallel'''
     def _cf_store_outputs(self) -> None:
         cf_main_output = self.cfd.get_nested_stack_outputs(self.stack_name)
         print('cf_main_output')
-        pp(cf_main_output)
+
+        outputs_by_output_key = {
+            o['OutputKey']: o['OutputValue']
+            for o in cf_main_output
+            if 'OutputKey' in o
+        }
+        outputs_by_export_name = {
+            o['ExportName']: o['OutputValue']
+            for o in cf_main_output
+            if 'ExportName' in o
+        }
+
         # Write outputs to a file
         with self.cf_main_output_path.open('w') as f:
-            f.write(json.dumps(cf_main_output, indent=2, ensure_ascii=False))
+            f.write(json.dumps({
+                    'by_output_key': outputs_by_output_key,
+                    'by_export_name': outputs_by_export_name,
+                    'raw': cf_main_output,
+                }, indent=2, ensure_ascii=False))
 
         # Optionally, set an output to indicate the file path
         with open(os.environ['GITHUB_OUTPUT'], 'a') as gh_output:
