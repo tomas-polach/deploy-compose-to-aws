@@ -21,7 +21,7 @@ from src.utils.generate_random_id import generate_random_id
 
 logger = get_logger(__name__)
 
-DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}"
+DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}:{git_commit}"
 DEFAULT_ENVIRONMENT = "dev"
 DEFAULT_TEMP_DIR = "_deployment_tmp"
 DEFAULT_ECS_COMPOSEX_OUTPUT_DIR = f"{DEFAULT_TEMP_DIR}/cf_output"
@@ -261,7 +261,7 @@ class Deployment:
 
     @staticmethod
     def _docker_get_repo_name_from_uri(image_uri: str) -> str:
-        return image_uri[image_uri.find('/') + 1:].split(':')[0]
+        return image_uri.split('.amazonaws.com/')[-1].split(':')[0]
 
     def _docker_generate_override_file(self, image_uri_by_service_name: dict[str, str]) -> None:
         override_config = {
