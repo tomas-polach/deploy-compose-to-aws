@@ -1,14 +1,15 @@
 # Use the official Python 3.11 slim image as the base image
 FROM python:3.11-slim
 
-# Install dependencies and Docker CLI
+# Install dependencies including Docker CLI and Git
 RUN apt-get update && \
     apt-get install -y \
     curl \
     unzip \
     gnupg \
     lsb-release \
-    software-properties-common && \
+    software-properties-common \
+    git && \
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
@@ -40,7 +41,7 @@ COPY requirements.txt ./requirements.txt
 COPY src/ ./src/
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r ./requirements.txt -q
+RUN pip install --no-cache-dir -r requirements.txt -q
 
 # Set the entrypoint to run the Python script as a module
 ENTRYPOINT ["python", "-m", "src.cli"]
