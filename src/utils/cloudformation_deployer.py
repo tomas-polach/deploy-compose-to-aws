@@ -107,12 +107,12 @@ class CloudFormationDeployer:
             else:
                 raise err
 
-    def get_stack_outputs(self, stack_name: str):
+    def get_stack_outputs(self, stack_name: str) -> list[dict[str, str]]:
         response = self.cf_client.describe_stacks(StackName=stack_name)
         outputs = response['Stacks'][0].get('Outputs', [])
         return outputs
 
-    def get_nested_stacks(self, stack_name: str):
+    def get_nested_stacks(self, stack_name: str) -> list[str]:
         response = self.cf_client.describe_stack_resources(StackName=stack_name)
         nested_stacks = [
             resource['PhysicalResourceId']
@@ -137,5 +137,6 @@ class CloudFormationDeployer:
             all_outputs.extend(nested_outputs)
 
         # Convert outputs to a dictionary for easier access
+        pp(all_outputs)
         output_dict = {output['OutputKey']: output['OutputValue'] for output in all_outputs}
         return output_dict
