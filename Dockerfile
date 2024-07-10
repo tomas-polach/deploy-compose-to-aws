@@ -39,7 +39,7 @@ COPY action.yaml ./action.yaml
 COPY src/ ./src/
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r ./src/requirements.txt -q
+RUN pip install --no-cache-dir -r ./requirements.txt -q
 
 # Set the entrypoint to run the Python script as a module
 ENTRYPOINT ["python", "-m", "src.cli"]
