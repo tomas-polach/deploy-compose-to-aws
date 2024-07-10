@@ -300,8 +300,9 @@ build --parallel'''
             digest = await Deployment._cmd_run_async(digest_cmd)
             digest = digest.split('@')[-1].strip()
 
-            # Create a new tag that includes the digest
-            new_tag = f"{image_uri}:sha-{digest[:12]}"  # Use a prefix and the first 12 characters of the digest
+            # Create a new tag that includes the digest without the "sha256:" prefix
+            short_digest = digest.replace("sha256:", "")[:12]  # Use the first 12 characters of the digest
+            new_tag = f"{image_uri}:sha-{short_digest}"
             new_tag_cmd = f"docker tag {temp_tag} {new_tag}"
             await Deployment._cmd_run_async(new_tag_cmd)
 
