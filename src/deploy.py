@@ -288,8 +288,18 @@ build --parallel'''
         image_digests = {}
         for image_uri in image_uris:
             service_name = image_uri.split('/')[-1]
-            cmd = f"docker inspect --format='{{{{index .RepoDigests 0}}}}' {image_uri}"
-            digest = await Deployment._cmd_run_async(cmd)
+            # Tag the image temporarily with a simple tag
+            temp_tag = f"{image_uri}:temp"
+            tag_cmd = f"docker tag {image_uri} {temp_tag}"
+            await Deployment._cmd_run_async(tag_cmd)
+
+            # Push the temporarily tagged image to ECR
+            push_cmd = f"docker push {temp_tag}"
+            await Deployment._cmd_run_async(push_cmd)
+
+            # Get the digest from the pushed image
+            digest_cmd = f"docker inspect --format='{{{{index .RepoDigests 0}}}}' {temp_tag}"
+            digest = await Deployment._cmd_run_async(digest_cmd)
             digest = digest.split('@')[-1].strip()
             image_digests[service_name] = f"{image_uri}@{digest}"
 
@@ -299,6 +309,7 @@ build --parallel'''
             Deployment._cmd_run_async(f"docker push {digest}")
             for digest in image_digests.values()
         ])
+
 
     def _cf_handle_placeholders(self):
         with self.ecs_compose_orig_path.open('r') as f:
