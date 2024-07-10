@@ -3,7 +3,6 @@ import re
 import json
 import argparse
 import asyncio
-from pprint import pprint as pp
 
 from src.deploy import Deployment
 

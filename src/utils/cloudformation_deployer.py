@@ -33,12 +33,13 @@ class CloudFormationDeployer:
         raise FileNotFoundError(f"Stack not found: {stack_name}")
 
     def wait_for_stack_completion(
-        self, stack_name: str, timeout=1200, sleep_time=10
+        self,
+        stack_name: str,
+        timeout=60 * 60, # in seconds
+        sleep_time=10,
     ) -> None:
-        # todo: use waiter = self.cf_client.get_waiter('stack_create_complete')
-        #      waiter.wait(StackName=stack_name)
-        elapsed_time = 3  # initial delay
-        sleep(3) # wait before checking the stack status for the first time
+        elapsed_time = 2  # initial delay
+        sleep(elapsed_time) # wait before checking the stack status for the first time
         stack_status = None
         while elapsed_time < timeout:
             stack_status = self._get_cloudformation_stack_by_name(stack_name)[
