@@ -101,9 +101,9 @@ class Deployment:
         # Docker:
         # generate docker-compose.override.yaml which will add docker image URIs to services with local docker builds,
         # so that docker knows where to push the locally built images to
+        self._docker_generate_override_file(docker_image_uri_by_service_name)
         await self._docker_login_ecr()
         await self._docker_build_tag_push(image_uris=list(docker_image_uri_by_service_name.values()))
-        self._docker_generate_override_file(docker_image_uri_by_service_name)
 
         # CloudFormation: main stack
         self._cf_handle_placeholders()
@@ -277,6 +277,8 @@ class Deployment:
             yaml.dump(override_config, fd)
 
     async def _docker_build_tag_push(self, image_uris: list[str]) -> None:
+        # todo: use digest as tag for the image
+
         # Build and tag images
         logger.debug(f"Building and tagging docker images ...")
         build_cmd = f'''COMPOSE_DOCKER_CLI_BUILD=1 \
@@ -288,13 +290,6 @@ docker-compose \
 -f "{str(self.docker_compose_override_path)}" \
 build --parallel'''
         await Deployment._cmd_run_async(build_cmd)
-
-        # get docker image digest for each image
-        image_digest_by_uri = {}
-        for image_uri in image_uris:
-            cmd = f"docker inspect --format='{{{{.RepoDigests}}}}' {image_uri}"
-            result = await Deployment._cmd_run_async(cmd)
-            image_digest_by_uri[image_uri] = result.strip().split('@')[-1]
 
         # Push images
         logger.debug(f"Pushing docker images ...")
@@ -396,7 +391,6 @@ build --parallel'''
 
     def _cf_store_outputs(self) -> None:
         cf_main_output = self.cfd.get_nested_stack_outputs(self.stack_name)
-        print('cf_main_output')
 
         outputs_by_output_key = {
             o['OutputKey']: o['OutputValue']
