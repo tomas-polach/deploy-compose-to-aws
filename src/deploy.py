@@ -95,20 +95,19 @@ class Deployment:
             image_uris=list(docker_image_uri_by_service_name.values()),
             ecr_keep_last_n_images=self.ecr_keep_last_n_images,
         )
-        # self._cf_ci_deploy(cf_ci_template)
+        self._cf_ci_deploy(cf_ci_template)
 
         # Docker:
         # generate docker-compose.override.yaml which will add docker image URIs to services with local docker builds,
         # so that docker knows where to push the locally built images to
         self._docker_generate_override_file(docker_image_uri_by_service_name)
         await self._docker_login_ecr()
-        # await self._docker_build_tag_push(image_uris=list(docker_image_uri_by_service_name.values()))
+        await self._docker_build_tag_push(image_uris=list(docker_image_uri_by_service_name.values()))
 
         # CloudFormation: main stack
         self._cf_handle_placeholders()
         self._cf_generate()
         self._cf_update(template_modifier=self._cf_update_template_urls)
-        return
         self._cf_upload_to_s3(dir_path=self.cf_main_dir)
         self._cf_deploy()
         self._cf_store_outputs()
