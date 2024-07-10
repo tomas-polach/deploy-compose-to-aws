@@ -43,6 +43,7 @@ class Deployment:
         mutable_tags: bool = True,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
         temp_dir: str | None = DEFAULT_TEMP_DIR,
+        keep_temp_files: bool = True,
     ):
         pp(ecs_compose_x_sub)
 
@@ -69,6 +70,7 @@ class Deployment:
         ts_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_") + generate_random_id(length=6)
 
         self.ci_s3_key_prefix = f'{self.stack_name}/{ts_str}'
+        self.keep_temp_files = keep_temp_files
         self.temp_dir = Path(temp_dir) / ts_str
         self.cf_main_dir = Path(self.temp_dir) / 'cf_main'
         self.cf_main_dir.mkdir(exist_ok=True, parents=True)
@@ -352,10 +354,7 @@ build --parallel'''
         )
         self.cfd.wait_for_stack_completion(self.stack_name)
 
-    async def run(
-            self,
-            keep_temp_files: bool = False
-    ):
+    async def run(self):
         # compile future docker image URIs for locally built docker images
         docker_image_uri_by_service_name = self._docker_get_image_uris_by_service_name()
 
@@ -392,7 +391,7 @@ build --parallel'''
             gh_output.write(f'cf-output-path={self.cf_main_output_path}\n')
 
         # delete temp dir
-        if keep_temp_files is not True:
+        if self.keep_temp_files is not True:
             shutil.rmtree(self.temp_dir)
 
         # todo: keep only the last 10 versions of the ci stack on S3
