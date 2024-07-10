@@ -385,11 +385,11 @@ build --parallel'''
         pp(cf_main_output)
         # Write outputs to a file
         with self.cf_main_output_path.open('w') as f:
-            f.write(cf_main_output)
+            f.write(json.dumps(cf_main_output, indent=2, ensure_ascii=False))
 
         # Optionally, set an output to indicate the file path
         with open(os.environ['GITHUB_OUTPUT'], 'a') as gh_output:
-            gh_output.write(f'cf_outputs_path={self.cf_main_output_path}\n')
+            gh_output.write(f'cf-outputs-path={self.cf_main_output_path}\n')
 
         # delete temp dir
         if keep_temp_files is not True:

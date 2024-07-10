@@ -27,7 +27,7 @@ inputs:
     default: "10"
 
 outputs:
-  cf_outputs_path:
+  cf-outputs-path:
     description: 'A JSON string containing all CloudFormation outputs in JSON format'
 
 runs:
