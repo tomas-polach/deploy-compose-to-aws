@@ -389,6 +389,7 @@ build --parallel'''
 
     def _cf_store_outputs(self) -> None:
         cf_main_output = self.cfd.get_nested_stack_outputs(self.stack_name)
+        print('cf_main_output')
         pp(cf_main_output)
         # Write outputs to a file
         with self.cf_main_output_path.open('w') as f:

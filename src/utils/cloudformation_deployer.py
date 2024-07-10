@@ -1,6 +1,5 @@
 from time import sleep
 import boto3
-from pprint import pprint as pp
 from src.utils.logger import get_logger
 
 
@@ -136,7 +135,4 @@ class CloudFormationDeployer:
             nested_outputs = self.get_nested_stack_outputs(nested_stack)
             all_outputs.extend(nested_outputs)
 
-        # Convert outputs to a dictionary for easier access
-        pp(all_outputs)
-        output_dict = {output['OutputKey']: output['OutputValue'] for output in all_outputs}
-        return output_dict
+        return all_outputs
