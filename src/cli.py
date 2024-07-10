@@ -76,8 +76,8 @@ def main():
         os.chdir('/github/workspace')
 
     # check if aws region is set
-    if 'AWS_REGION' not in os.environ:
-        raise ValueError('AWS_REGION environment variable is not set')
+    if 'AWS_DEFAULT_REGION' not in os.environ:
+        raise ValueError('AWS_DEFAULT_REGION environment variable is not set')
     # get aws region from env vars
     args_dict['aws_region'] = os.getenv('AWS_DEFAULT_REGION')
 

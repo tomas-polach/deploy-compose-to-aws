@@ -378,7 +378,6 @@ build --parallel'''
         self._cf_handle_placeholders()
         self._cf_generate()
         self._cf_update(template_modifier=self._cf_update_template_urls)
-        return
         self._cf_upload_to_s3(dir_path=self.cf_main_dir)
         self._cf_deploy()
 
