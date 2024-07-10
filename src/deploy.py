@@ -72,6 +72,7 @@ class Deployment:
         self.cf_main_dir = Path(self.temp_dir) / 'cf_main'
         self.cf_main_dir.mkdir(exist_ok=True, parents=True)
         self.cf_main_output_path = self.cf_main_dir / 'outputs.json'
+        self.cf_disable_rollback = True
 
         self.ecs_compose_path = Path(self.temp_dir) / self.ecs_compose_orig_path.name
 
@@ -332,6 +333,7 @@ build --parallel'''
             RegionName=self.aws_region,
             BucketName=self.ci_s3_bucket_name,
             Name=self.stack_name,
+            disable_rollback=self.cf_disable_rollback,
             DockerComposeXFile=[
                 self.docker_compose_path,
                 self.docker_compose_override_path,
