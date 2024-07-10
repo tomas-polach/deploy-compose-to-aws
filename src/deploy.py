@@ -102,7 +102,7 @@ class Deployment:
             return None, None
 
     @staticmethod
-    async def _cmd_run_async(cmd: str, input: bytes | None = None):
+    async def _cmd_run_async(cmd: str, input: bytes | None = None) -> str:
         process = await asyncio.create_subprocess_shell(
             cmd,
             stdin=asyncio.subprocess.PIPE if input else None,
@@ -118,7 +118,7 @@ class Deployment:
         return stdout.decode()
 
     @staticmethod
-    def _cmd_run(cmd: str, input: bytes | None = None):
+    def _cmd_run(cmd: str, input: bytes | None = None) -> str:
         process = subprocess.Popen(
             cmd,
             shell=True,
@@ -134,7 +134,7 @@ class Deployment:
             raise ValueError(f"Command failed: {cmd}\n{stderr.decode()}")
         return stdout.decode()
 
-    async def _docker_login_ecr(self):
+    async def _docker_login_ecr(self) -> None:
         cmd = f"aws ecr get-login-password --region {self.aws_region}"
         password = await Deployment._cmd_run_async(cmd)
         cmd = f"docker login --username AWS --password-stdin {self.aws_account_id}.dkr.ecr.{self.aws_region}.amazonaws.com"
@@ -194,7 +194,7 @@ class Deployment:
 
         return cf_template
 
-    def _cf_ci_deploy(self, cf_template: dict[str, dict]):
+    def _cf_ci_deploy(self, cf_template: dict[str, dict]) -> None:
         self.cfd.create_or_update_stack(
             stack_name=self.ci_stack_name,
             template_body=yaml.dump(cf_template),
@@ -229,10 +229,10 @@ class Deployment:
         return image_uri_by_service_name
 
     @staticmethod
-    def _docker_get_repo_name_from_uri(image_uri: str):
+    def _docker_get_repo_name_from_uri(image_uri: str) -> str:
         return image_uri[image_uri.find('/') + 1:].split(':')[0]
 
-    def _docker_generate_override_file(self, image_uri_by_service_name: dict[str, str]):
+    def _docker_generate_override_file(self, image_uri_by_service_name: dict[str, str]) -> None:
         override_config = {
             'services': {
                 service_name: {
@@ -243,7 +243,7 @@ class Deployment:
         with self.docker_compose_override_path.open('w') as fd:
             yaml.dump(override_config, fd)
 
-    async def _docker_build_tag_push(self, image_uris: list[str]):
+    async def _docker_build_tag_push(self, image_uris: list[str]) -> None:
         # Build and tag images
         logger.debug(f"Building and tagging docker images ...")
         build_cmd = f'''COMPOSE_DOCKER_CLI_BUILD=1 \
@@ -270,7 +270,7 @@ build --parallel'''
         with self.ecs_compose_path.open('w') as f:
             f.write(text)
 
-    def _cf_generate(self):
+    def _cf_generate(self) -> None:
         logger.debug(f"Generating CloudFormation template from Docker Compose ...")
         ecx_settings = ComposeXSettings(
             command="render",
@@ -288,7 +288,7 @@ build --parallel'''
         ecx_root_stack = generate_full_template(ecx_settings)
         process_stacks(ecx_root_stack, ecx_settings)
 
-    def _cf_update(self, template_modifier: Callable[[dict[str, dict]], dict]):
+    def _cf_update(self, template_modifier: Callable[[dict[str, dict]], dict]) -> None:
         cf_template_by_filename = {}
         for cf_template_path in self.cf_main_dir.glob('*.yaml'):
             with cf_template_path.open('r') as fd:
@@ -318,7 +318,7 @@ build --parallel'''
                         )
         return cf_template_by_filename
 
-    def _cf_upload_to_s3(self, dir_path: Path):
+    def _cf_upload_to_s3(self, dir_path: Path) -> None:
         # upload generated cf templates to S3
         for file_path in dir_path.glob('*'):
             if file_path.suffix in ['.yaml', '.yml', '.json']:
@@ -330,7 +330,7 @@ build --parallel'''
     def _cf_get_template_url(self, dir_path: Path, filename: str):
         return f"https://{self.ci_s3_bucket_name}.s3.{self.aws_region}.amazonaws.com/{self.ci_s3_key_prefix}/{dir_path.name}/{filename}"
 
-    def _cf_deploy(self):
+    def _cf_deploy(self) -> None:
         # if stack doesn't exist, set ECS defaults
         if not self.cfd.stack_exists(self.stack_name):
             # https://github.com/compose-x/ecs_composex/blob/ff97d079113de5b1660c1beeafb24c8610971d10/ecs_composex/utils/init_ecs.py#L11
@@ -353,6 +353,17 @@ build --parallel'''
             ),
         )
         self.cfd.wait_for_stack_completion(self.stack_name)
+
+    def _cf_store_outputs(self) -> None:
+        cf_main_output = self.cfd.get_nested_stack_outputs(self.stack_name)
+        pp(cf_main_output)
+        # Write outputs to a file
+        with self.cf_main_output_path.open('w') as f:
+            f.write(json.dumps(cf_main_output, indent=2, ensure_ascii=False))
+
+        # Optionally, set an output to indicate the file path
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as gh_output:
+            gh_output.write(f'cf-output-path={self.cf_main_output_path}\n')
 
     async def run(self):
         # compile future docker image URIs for locally built docker images
@@ -379,16 +390,7 @@ build --parallel'''
         self._cf_update(template_modifier=self._cf_update_template_urls)
         self._cf_upload_to_s3(dir_path=self.cf_main_dir)
         self._cf_deploy()
-
-        cf_main_output = self.cfd.get_stack_outputs(self.stack_name)
-        pp(cf_main_output)
-        # Write outputs to a file
-        with self.cf_main_output_path.open('w') as f:
-            f.write(json.dumps(cf_main_output, indent=2, ensure_ascii=False))
-
-        # Optionally, set an output to indicate the file path
-        with open(os.environ['GITHUB_OUTPUT'], 'a') as gh_output:
-            gh_output.write(f'cf-output-path={self.cf_main_output_path}\n')
+        self._cf_store_outputs()
 
         # delete temp dir
         if self.keep_temp_files is not True:

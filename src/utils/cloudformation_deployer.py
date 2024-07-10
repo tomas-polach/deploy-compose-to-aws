@@ -1,5 +1,6 @@
 from time import sleep
 import boto3
+from pprint import pprint as pp
 from src.utils.logger import get_logger
 
 
@@ -106,15 +107,35 @@ class CloudFormationDeployer:
             else:
                 raise err
 
-    def get_stack_outputs(self, stack_name: str) -> dict[str, str]:
+    def get_stack_outputs(self, stack_name: str):
         response = self.cf_client.describe_stacks(StackName=stack_name)
+        outputs = response['Stacks'][0].get('Outputs', [])
+        return outputs
 
-        stacks = response['Stacks']
-        if not stacks:
-            raise Exception(f"No stack found with name {stack_name}")
+    def get_nested_stacks(self, stack_name: str):
+        response = self.cf_client.describe_stack_resources(StackName=stack_name)
+        nested_stacks = [
+            resource['PhysicalResourceId']
+            for resource in response['StackResources']
+            if resource['ResourceType'] == 'AWS::CloudFormation::Stack'
+        ]
+        return nested_stacks
 
-        outputs = stacks[0].get('Outputs', [])
+    def get_nested_stack_outputs(self, stack_name: str):
+        all_outputs = []
+
+        # Get outputs of the current stack
+        stack_outputs = self.get_stack_outputs(stack_name)
+        all_outputs.extend(stack_outputs)
+
+        # Get nested stacks
+        nested_stacks = self.get_nested_stacks(stack_name)
+
+        # Recursively get outputs of nested stacks
+        for nested_stack in nested_stacks:
+            nested_outputs = self.get_nested_stack_outputs(nested_stack)
+            all_outputs.extend(nested_outputs)
+
         # Convert outputs to a dictionary for easier access
-        output_dict = {output['OutputKey']: output['OutputValue'] for output in outputs}
-
+        output_dict = {output['OutputKey']: output['OutputValue'] for output in all_outputs}
         return output_dict
