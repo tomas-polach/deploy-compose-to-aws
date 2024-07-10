@@ -36,6 +36,7 @@ ENV PYTHONPATH /action
 
 # Copy the action and src files
 COPY action.yaml ./action.yaml
+COPY requirements.txt ./requirements.txt
 COPY src/ ./src/
 
 # Install Python dependencies
