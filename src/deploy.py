@@ -251,7 +251,9 @@ class Deployment:
                 project_name=self.project_name,
                 env_name=self.env_name,
                 stack_name=self.stack_name,
-                service_name=service_name
+                service_name=service_name,
+                git_branch=self.git_branch,
+                git_commit=self.git_commit,
             ) for service_name in services_with_build.keys()
         }
 
@@ -285,37 +287,12 @@ docker-compose \
 build --parallel'''
         await Deployment._cmd_run_async(build_cmd)
 
-        # Compute the digest and tag the images with a tag that includes the digest
-        for image_uri in image_uris:
-            # Tag the image temporarily with a simple tag
-            temp_tag = f"{image_uri}:temp"
-            tag_cmd = f"docker tag {image_uri} {temp_tag}"
-            await Deployment._cmd_run_async(tag_cmd)
-
-            # Push the temporarily tagged image to ECR
-            push_cmd = f"docker push {temp_tag}"
-            await Deployment._cmd_run_async(push_cmd)
-
-            # Get the digest from the pushed image
-            digest_cmd = f"docker inspect --format='{{{{index .RepoDigests 0}}}}' {temp_tag}"
-            digest = await Deployment._cmd_run_async(digest_cmd)
-            digest = digest.split('@')[-1].strip()
-
-            # Create a new tag that includes the digest without the "sha256:" prefix
-            short_digest = digest.replace("sha256:", "")[:12]  # Use the first 12 characters of the digest
-            new_tag = f"{image_uri}:sha-{short_digest}"
-            new_tag_cmd = f"docker tag {temp_tag} {new_tag}"
-            await Deployment._cmd_run_async(new_tag_cmd)
-
-            # Push the new tag to ECR
-            push_new_tag_cmd = f"docker push {new_tag}"
-            await Deployment._cmd_run_async(push_new_tag_cmd)
-
-            # Optionally, remove the temporary tag
-            remove_temp_tag_cmd = f"docker rmi {temp_tag}"
-            await Deployment._cmd_run_async(remove_temp_tag_cmd)
-
-        logger.debug("Docker images have been successfully pushed with digest tags.")
+        # Push images
+        logger.debug(f"Pushing docker images ...")
+        await asyncio.gather(*[
+            Deployment._cmd_run_async(f"docker push {image_uri}")
+            for image_uri in image_uris
+        ])
 
 
     def _cf_handle_placeholders(self):
