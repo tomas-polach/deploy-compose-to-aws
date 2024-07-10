@@ -19,15 +19,12 @@ from src.utils.logger import get_logger
 from src.utils.to_pascal_case import to_pascal_case
 from src.utils.generate_random_id import generate_random_id
 
-
 logger = get_logger(__name__)
 
-
-DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}:{git_commit}"
+DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}"
 DEFAULT_ENVIRONMENT = "dev"
 DEFAULT_TEMP_DIR = "_deployment_tmp"
 DEFAULT_ECS_COMPOSEX_OUTPUT_DIR = f"{DEFAULT_TEMP_DIR}/cf_output"
-
 
 class Deployment:
     def __init__(self,
@@ -253,9 +250,7 @@ class Deployment:
                 project_name=self.project_name,
                 env_name=self.env_name,
                 stack_name=self.stack_name,
-                service_name=service_name,
-                git_branch=self.git_branch,
-                git_commit=self.git_commit,
+                service_name=service_name
             ) for service_name in services_with_build.keys()
         }
 
@@ -277,8 +272,6 @@ class Deployment:
             yaml.dump(override_config, fd)
 
     async def _docker_build_tag_push(self, image_uris: list[str]) -> None:
-        # todo: use digest as tag for the image
-
         # Build and tag images
         logger.debug(f"Building and tagging docker images ...")
         build_cmd = f'''COMPOSE_DOCKER_CLI_BUILD=1 \
@@ -291,11 +284,20 @@ docker-compose \
 build --parallel'''
         await Deployment._cmd_run_async(build_cmd)
 
-        # Push images
-        logger.debug(f"Pushing docker images ...")
+        # Compute the digest and tag the images with the digest
+        image_digests = {}
+        for image_uri in image_uris:
+            service_name = image_uri.split('/')[-1]
+            cmd = f"docker inspect --format='{{{{index .RepoDigests 0}}}}' {image_uri}"
+            digest = await Deployment._cmd_run_async(cmd)
+            digest = digest.split('@')[-1].strip()
+            image_digests[service_name] = f"{image_uri}@{digest}"
+
+        # Push images with the digest tag
+        logger.debug(f"Pushing docker images with digest tags...")
         await asyncio.gather(*[
-            Deployment._cmd_run_async(f"docker push {image_uri}")
-            for image_uri in image_uris
+            Deployment._cmd_run_async(f"docker push {digest}")
+            for digest in image_digests.values()
         ])
 
     def _cf_handle_placeholders(self):
