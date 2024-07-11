@@ -50,7 +50,7 @@ runs:
       shell: bash
       run: |
         ls -la ${GITHUB_ACTION_PATH}
-        pip install -r ${GITHUB_ACTION_PATH}/requirements.txt
+        pip install -r ${GITHUB_ACTION_PATH}/requirements.txt -q
 
     - # Add support for more platforms with QEMU
       name: Set up QEMU
@@ -75,6 +75,6 @@ runs:
           --cf-stack-prefix=${{ inputs.cf-stack-prefix }} \
           --env-name=${{ inputs.env-name }} \
           --docker-compose-path=${{ inputs.docker-compose-path }} \
-          --ecs-compose-x-sub=${{ inputs.ecs-compose-x-sub }} \
+          --ecs-compose-x-sub='${{ inputs.ecs-compose-x-sub }}' \
           --ecs-compose-x-path=${{ inputs.ecs-compose-x-path }} \
           --ecr-keep-last-n-images=${{ inputs.ecr-keep-last-n-images }}
