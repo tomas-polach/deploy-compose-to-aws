@@ -362,7 +362,6 @@ class Deployment:
                 raise ValueError(f"Invalid build context for service {service_name}")
 
             # Build, tag and push images with Buildx, using the cache from the local storage
-            logger.debug(f"Building and tagging docker images for service {service_name} with Buildx ...")
             build_cmd = f"""docker buildx build \
 {platform_str} \
 --cache-from=type=local,src=/tmp/.buildx-cache \
@@ -374,10 +373,9 @@ class Deployment:
 --push \
 --quiet \
 {service_build_context}"""
+            logger.debug(f"Building and tagging docker images for service {service_name} with Buildx ...\n  {build_cmd}")
             build_cmds.append(build_cmd)
 
-        logger.debug(f"Building, tagging and pushing docker images ...")
-        pp(build_cmds)
         await asyncio.gather(
             *[
                 Deployment._cmd_run_async(build_cmd)
