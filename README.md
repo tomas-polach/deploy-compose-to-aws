@@ -4,7 +4,8 @@
 
 This action deploys a Docker Compose file to AWS ECS using CloudFormation.
 Based ECS Compose X, this action handles the following:
-- Builds local Docker images
+- Builds local Docker images using buildx and QEMU
+- Uses cache to speed up builds
 - Creates ECR repositories for locally built Docker images
 - Pushes local Docker images to ECR
 
