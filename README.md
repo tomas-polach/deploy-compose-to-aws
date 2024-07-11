@@ -26,14 +26,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to AWS
-        uses: tomas-polach/deploy-compose-to-aws@v1
+        uses: tomas-polach/deploy-compose-to-aws@main
         id: deploy
         env:
           AWS_REGION: 'eu-west-1'
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # optional:
+      # optional: Use outputs from the deployment
       - name: Extract outputs
         id: deploy-outputs
         run: |
@@ -57,8 +57,7 @@ jobs:
 
 ## Todos
 
-- [ ] Format code
-- [ ] Refactor for readability
+- [ ] add cf_disable_rollback param
 - [ ] Add examples
 - [ ] Print CF errors in action UI
 

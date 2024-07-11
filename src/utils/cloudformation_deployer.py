@@ -14,7 +14,7 @@ class CloudFormationDeployer:
     ]
 
     def __init__(self, region_name: str):
-        self.cf_client = boto3.client('cloudformation', region_name=region_name)
+        self.cf_client = boto3.client("cloudformation", region_name=region_name)
 
     def stack_exists(self, stack_name) -> bool:
         try:
@@ -35,11 +35,11 @@ class CloudFormationDeployer:
     def wait_for_stack_completion(
         self,
         stack_name: str,
-        timeout=60 * 60, # in seconds
+        timeout=60 * 60,  # in seconds
         sleep_time=10,
     ) -> None:
         elapsed_time = 2  # initial delay
-        sleep(elapsed_time) # wait before checking the stack status for the first time
+        sleep(elapsed_time)  # wait before checking the stack status for the first time
         stack_status = None
         while elapsed_time < timeout:
             stack_status = self._get_cloudformation_stack_by_name(stack_name)[
@@ -62,12 +62,12 @@ class CloudFormationDeployer:
         )
 
     def create_or_update_stack(
-            self,
-            stack_name: str,
-            template_body: str | None = None,
-            template_url: str | None = None,
-            parameters: dict[str, str] = {},
-            capabilities: list[str] | None = None,
+        self,
+        stack_name: str,
+        template_body: str | None = None,
+        template_url: str | None = None,
+        parameters: dict[str, str] = {},
+        capabilities: list[str] | None = None,
     ) -> bool:
         """
         return True if the stack was created or updated, False if no changes were needed
@@ -89,7 +89,7 @@ class CloudFormationDeployer:
                     {"ParameterKey": key, "ParameterValue": val}
                     for key, val in parameters.items()
                 ],
-                "Capabilities": capabilities or self._default_capabilities
+                "Capabilities": capabilities or self._default_capabilities,
             }
             if template_body:
                 params["TemplateBody"] = template_body
@@ -108,15 +108,15 @@ class CloudFormationDeployer:
 
     def get_stack_outputs(self, stack_name: str) -> list[dict[str, str]]:
         response = self.cf_client.describe_stacks(StackName=stack_name)
-        outputs = response['Stacks'][0].get('Outputs', [])
+        outputs = response["Stacks"][0].get("Outputs", [])
         return outputs
 
     def get_nested_stacks(self, stack_name: str) -> list[str]:
         response = self.cf_client.describe_stack_resources(StackName=stack_name)
         nested_stacks = [
-            resource['PhysicalResourceId']
-            for resource in response['StackResources']
-            if resource['ResourceType'] == 'AWS::CloudFormation::Stack'
+            resource["PhysicalResourceId"]
+            for resource in response["StackResources"]
+            if resource["ResourceType"] == "AWS::CloudFormation::Stack"
         ]
         return nested_stacks
 
