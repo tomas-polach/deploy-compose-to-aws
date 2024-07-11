@@ -13,11 +13,11 @@ inputs:
     description: 'The docker compose path. Defaults to "docker-compose.yaml"'
     required: false
     default: ""
-  ecs-compose-x-sub:
-    description: 'A JSON string containing the ECS compose substitutes. Defaults to "{}"'
+  ecs-composex-subs:
+    description: 'A JSON string for replacing placeholders like ${foo} in the ECS compose x YAML file. JSON keys are the placeholders, values are the replacements. Defaults to {}'
     required: false
     default: "{}"
-  ecs-compose-x-path:
+  ecs-composex-path:
     description: 'The AWS compose path. Defaults to "aws-compose-x.yaml"'
     required: false
     default: ""
@@ -74,10 +74,4 @@ runs:
         GITHUB_WORKSPACE: ${{ github.workspace }}
       run: |
         cd ${GITHUB_ACTION_PATH}
-        python -m src.cli \
-          --cf-stack-prefix=${{ inputs.cf-stack-prefix }} \
-          --env-name=${{ inputs.env-name }} \
-          --docker-compose-path=${{ inputs.docker-compose-path }} \
-          --ecs-compose-x-sub='${{ inputs.ecs-compose-x-sub }}' \
-          --ecs-compose-x-path=${{ inputs.ecs-compose-x-path }} \
-          --ecr-keep-last-n-images=${{ inputs.ecr-keep-last-n-images }}
+        python -m src.github_action_handler

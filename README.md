@@ -30,9 +30,17 @@ jobs:
         uses: tomas-polach/deploy-compose-to-aws@main
         id: deploy
         env:
+          # required
           AWS_REGION: 'eu-west-1'
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        with:
+          # (optional) will replace "${my_placeholder}" with "foobar" in the ecs compose x YAML file
+          ecs_composex_subs: |
+            {
+              "my_placeholder": "foobar"
+            }
+
 
       # optional: Use outputs from the deployment
       - name: Extract outputs

@@ -39,8 +39,8 @@ class Deployment:
         git_branch: str | None = None,
         git_commit: str | None = None,
         docker_compose_path: str = "docker-compose.yaml",
-        ecs_compose_x_path: str = "ecs-compose-x.yaml",
-        ecs_compose_x_sub: dict = {},
+        ecs_composex_path: str = "ecs-composex.yaml",
+        ecs_composex_subs: dict[str, str] = {},
         ecr_keep_last_n_images: int | None = 10,
         mutable_tags: bool = True,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
@@ -51,8 +51,8 @@ class Deployment:
         self.env_name = slugify(env_name)
         self.aws_region = aws_region
         self.docker_compose_path = Path(docker_compose_path)
-        self.ecs_compose_orig_path = Path(ecs_compose_x_path)
-        self.ecs_compose_x_subs = ecs_compose_x_sub
+        self.ecs_compose_orig_path = Path(ecs_composex_path)
+        self.ecs_composex_subs = ecs_composex_subs
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.mutable_tags = mutable_tags
         self.image_uri_format = image_uri_format
@@ -89,6 +89,11 @@ class Deployment:
         self.ecr_client = boto3.client("ecr", region_name=self.aws_region)
         self.cfd = CloudFormationDeployer(region_name=self.aws_region)
         self.aws_account_id = self.cfd.get_account_id()
+
+        # set redundant env vars since some libraries use AWS_DEFAULT_REGION while others use AWS_REGION
+        os.environ["AWS_REGION"] = aws_region
+        os.environ["AWS_DEFAULT_REGION"] = aws_region
+
 
     async def run(self):
         # compile future docker image URIs for locally built docker images
@@ -194,6 +199,8 @@ class Deployment:
             ).items()
             if "build" in service_params
         }
+
+        # todo: deduplicate builds if a docker is used by multiple services (e.g. with various command line args)
 
         build_cmds = []
         for service_name, service_params in services_with_build.items():
@@ -326,7 +333,7 @@ class Deployment:
     def _cf_handle_placeholders(self):
         with self.ecs_compose_orig_path.open("r") as f:
             text = f.read()
-        text = string.Template(text).substitute(self.ecs_compose_x_subs)
+        text = string.Template(text).substitute(self.ecs_composex_subs)
         with self.ecs_compose_path.open("w") as f:
             f.write(text)
 
