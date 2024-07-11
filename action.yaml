@@ -42,7 +42,7 @@ runs:
     - name: Cache pip dependencies
       uses: actions/cache@v4
       with:
-        path: ~/.cache/pip
+        path: /tmp/.pip-action-cache
         key: ${{ runner.os }}-pip-${{ hashFiles('${GITHUB_ACTION_PATH}/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
@@ -50,7 +50,7 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        pip install -r ${GITHUB_ACTION_PATH}/requirements.txt -q
+        PIP_CACHE_DIR=/tmp/.pip-action-cache pip install -r ${GITHUB_ACTION_PATH}/requirements.txt -q
 
     - # Add support for more platforms with QEMU
       name: Set up QEMU
