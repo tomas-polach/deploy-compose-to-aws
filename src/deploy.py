@@ -371,7 +371,7 @@ class Deployment:
         for cf_template in cf_template_by_filename.values():
             # for all resources
             if "Resources" in cf_template:
-                for r_name, r_params in cf_template["Resources"].items():
+                for r_params in cf_template["Resources"].values():
                     # update TemplateURLs in nested stacks
                     if (
                         r_params.get("Type") == "AWS::CloudFormation::Stack"
