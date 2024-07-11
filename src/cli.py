@@ -1,9 +1,7 @@
 import os
-import re
 import json
 import argparse
 import asyncio
-
 from src.deploy import Deployment
 
 
@@ -79,6 +77,9 @@ def main():
         raise ValueError('AWS_DEFAULT_REGION environment variable is not set')
     # get aws region from env vars
     args_dict['aws_region'] = os.getenv('AWS_DEFAULT_REGION')
+
+    # ecs composes x uses AWS_REGION instead of the official AWS_DEFAULT_REGION
+    os.environ['AWS_REGION'] = args_dict['aws_region']
 
     dep = Deployment(**args_dict)
     asyncio.run(dep.run())
