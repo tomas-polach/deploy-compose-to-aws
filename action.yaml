@@ -69,9 +69,8 @@ runs:
     - name: Deploy
       shell: bash
       env:
-        GITHUB_WORKSPACEE: ${{ github.workspace }}
+        GITHUB_WORKSPACE: ${{ github.workspace }}
       run: |
-        echo "RRRRRRR $GITHUB_WORKSPACEE"
         python -m src.cli \
           --cf-stack-prefix=${{ inputs.cf-stack-prefix }} \
           --env-name=${{ inputs.env-name }} \

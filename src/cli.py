@@ -92,7 +92,8 @@ def main():
 
     # change working dir when running in github actions
     if os.getenv("GITHUB_ACTIONS") == "true":
-        os.chdir("/github/workspace")
+        workspace_dir = os.getenv("GITHUB_WORKSPACE", "/github/workspace")
+        os.chdir(workspace_dir)
 
     # check if aws region is set
     if "AWS_REGION" not in os.environ:
