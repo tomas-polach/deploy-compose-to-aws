@@ -363,29 +363,18 @@ class Deployment:
             else:
                 raise ValueError(f"Invalid build context for service {service_name}")
 
-            image_cache_uri = self.image_cache_uri_format.format(
-                aws_account_id=self.aws_account_id,
-                aws_region=self.aws_region,
-                project_name=self.project_name,
-                env_name=self.env_name,
-                stack_name=self.stack_name,
-                service_name=service_name,
-                git_branch=self.git_branch,
-                git_commit=self.git_commit,
-            )
-
-            # Build and tag images with Buildx, using the cache from the registry and pushing the cache back to the registry
+            # Build and tag images with Buildx, using the cache from the local storage
             logger.debug(f"Building and tagging docker images for service {service_name} with Buildx ...")
             build_cmd = f"""docker buildx build \
 {platform_str} \
---cache-from=type=registry,ref={image_cache_uri} \
---cache-to=type=registry,ref={image_cache_uri},mode=max \
+--cache-from=type=local,src=/tmp/.buildx-cache \
+--cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
 --file {service_dockerfile} \
 {build_args_str} \
 {build_target_str} \
 --tag {service_image_uri} \
 --push \
-{service_build_context}"""
+{service_build_context} > /dev/null 2> >(grep -i "error\\|warning" >&2)"""
             build_cmds.append(build_cmd)
 
         logger.debug(f"Building and tagging docker images ...")
