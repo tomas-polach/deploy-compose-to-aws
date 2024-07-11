@@ -123,10 +123,10 @@ class Deployment:
     async def _docker_login_ecr(self) -> None:
         # Get the ECR authorization token
         response = self.ecr_client.get_authorization_token()
-        auth_data = response['authorizationData'][0]
-        auth_token = auth_data['authorizationToken']
-        registry_url = auth_data['proxyEndpoint']
-        username, password = base64.b64decode(auth_token).decode('utf-8').split(':')
+        auth_data = response["authorizationData"][0]
+        auth_token = auth_data["authorizationToken"]
+        registry_url = auth_data["proxyEndpoint"]
+        username, password = base64.b64decode(auth_token).decode("utf-8").split(":")
         # Login to the ECR registry
         cmd = f"docker login --username {username} --password-stdin {registry_url}"
         await run_cmd_async(cmd, input=password.encode())
@@ -175,19 +175,23 @@ class Deployment:
         with self.docker_compose_override_path.open("w") as fd:
             yaml.dump(override_config, fd)
 
-    async def _docker_build_tag_push(self, docker_image_uri_by_service_name: dict[str, str]) -> None:
+    async def _docker_build_tag_push(
+        self, docker_image_uri_by_service_name: dict[str, str]
+    ) -> None:
         # Create a new Buildx builder instance and use it
         logger.debug(f"Setting up Docker Buildx ...")
         buildx_create_cmd = "docker buildx create --use"
         await run_cmd_async(buildx_create_cmd)
 
         # Load Docker Compose configuration
-        with open(self.docker_compose_path, 'r') as file:
+        with open(self.docker_compose_path, "r") as file:
             docker_compose = yaml.safe_load(file)
 
         services_with_build = {
             service_name: service_params
-            for service_name, service_params in docker_compose.get("services", {}).items()
+            for service_name, service_params in docker_compose.get(
+                "services", {}
+            ).items()
             if "build" in service_params
         }
 
@@ -196,30 +200,34 @@ class Deployment:
             service_image_uri = docker_image_uri_by_service_name[service_name]
 
             # Handle platform if present
-            platform = service_params.get('platform', 'linux/amd64')
+            platform = service_params.get("platform", "linux/amd64")
             platform_str = f"--platform {platform}"
 
             # Determine the build context and Dockerfile path
-            build_context = service_params['build']
+            build_context = service_params["build"]
             if isinstance(build_context, str):
                 # e.g. build: ./my-dir
                 service_build_context = build_context
-                service_dockerfile = Path(build_context) / 'Dockerfile'
+                service_dockerfile = Path(build_context) / "Dockerfile"
 
-                build_args_str = ''
-                build_target_str = ''
+                build_args_str = ""
+                build_target_str = ""
             elif isinstance(build_context, dict):
                 # e.g. build: { context: ./my-dir, dockerfile: Dockerfile.dev, args: { key: value } }
-                service_build_context = build_context.get('context', '.')
-                service_dockerfile = Path(service_build_context) / build_context.get('dockerfile', 'Dockerfile')
+                service_build_context = build_context.get("context", ".")
+                service_dockerfile = Path(service_build_context) / build_context.get(
+                    "dockerfile", "Dockerfile"
+                )
 
                 # Handle build args if present
-                build_args = build_context.get('args', {})
-                build_args_str = ' '.join([f"--build-arg {k}={v}" for k, v in build_args.items()])
+                build_args = build_context.get("args", {})
+                build_args_str = " ".join(
+                    [f"--build-arg {k}={v}" for k, v in build_args.items()]
+                )
 
                 # Handle target if present
-                build_target = build_context.get('target', None)
-                build_target_str = f"--target {build_target}" if build_target else ''
+                build_target = build_context.get("target", None)
+                build_target_str = f"--target {build_target}" if build_target else ""
             else:
                 raise ValueError(f"Invalid build context for service {service_name}")
 
@@ -235,17 +243,16 @@ class Deployment:
 --push \
 --quiet \
 {service_build_context}"""
-            logger.debug(f"Building and tagging docker images for service {service_name} with Buildx ...\n  {build_cmd}")
+            logger.debug(
+                f"Building and tagging docker images for service {service_name} with Buildx ...\n  {build_cmd}"
+            )
             build_cmds.append(build_cmd)
 
-        await asyncio.gather(
-            *[
-                run_cmd_async(build_cmd)
-                for build_cmd in build_cmds
-            ]
-        )
+        await asyncio.gather(*[run_cmd_async(build_cmd) for build_cmd in build_cmds])
 
-    def _cf_ci_generate(self, docker_image_uri_by_service_name: dict[str, str]) -> dict[str, dict]:
+    def _cf_ci_generate(
+        self, docker_image_uri_by_service_name: dict[str, str]
+    ) -> dict[str, dict]:
         unique_repo_names = list(
             set(
                 map(
