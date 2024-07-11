@@ -368,7 +368,7 @@ class Deployment:
     def _cf_update_template_urls(
         self, cf_template_by_filename: dict[str, dict]
     ) -> dict[str, dict]:
-        for cf_filename, cf_template in cf_template_by_filename.items():
+        for cf_template in cf_template_by_filename.values():
             # for all resources
             if "Resources" in cf_template:
                 for r_name, r_params in cf_template["Resources"].items():
