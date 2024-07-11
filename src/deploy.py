@@ -94,7 +94,6 @@ class Deployment:
         os.environ["AWS_REGION"] = aws_region
         os.environ["AWS_DEFAULT_REGION"] = aws_region
 
-
     async def run(self):
         # compile future docker image URIs for locally built docker images
         docker_image_uri_by_service_name = self._docker_get_image_uris_by_service_name()
@@ -248,14 +247,15 @@ class Deployment:
 {build_target_str} \
 --tag {service_image_uri} \
 --push \
---quiet \
 {service_build_context}"""
             logger.debug(
                 f"Building and tagging docker images for service {service_name} with Buildx ...\n  {build_cmd}"
             )
             build_cmds.append(build_cmd)
 
-        await asyncio.gather(*[run_cmd_async(build_cmd) for build_cmd in build_cmds])
+        await asyncio.gather(
+            *[run_cmd_async(build_cmd, log_error_only=True) for build_cmd in build_cmds]
+        )
 
     def _cf_ci_generate(
         self, docker_image_uri_by_service_name: dict[str, str]

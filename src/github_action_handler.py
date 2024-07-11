@@ -7,7 +7,7 @@ from src.deploy import Deployment
 def getenv(var_name: str, default=None):
     # returns None also if the value is an empty string
     value = os.getenv(var_name, default)
-    return value if value != '' else default
+    return value if value != "" else default
 
 
 def github_action_handler():
@@ -38,9 +38,7 @@ def github_action_handler():
     try:
         ecs_composex_subs = json.loads(ecs_composex_subs)
     except json.JSONDecodeError:
-        raise ValueError(
-            "Invalid JSON string provided for ECS Compose X substitutes"
-        )
+        raise ValueError("Invalid JSON string provided for ECS Compose X substitutes")
 
     # convert ecr_keep_last_n_images to int
     if ecr_keep_last_n_images == "" or ecr_keep_last_n_images == "0":
@@ -52,7 +50,6 @@ def github_action_handler():
             raise ValueError(
                 "Invalid value provided for ECR_KEEP_LAST_N_IMAGES. Must be an integer"
             )
-
 
     # get branch name
     git_branch = git_ref.split("/")[-1] if git_ref is not None else None
