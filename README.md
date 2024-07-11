@@ -29,7 +29,7 @@ jobs:
         uses: tomas-polach/deploy-compose-to-aws@v1
         id: deploy
         env:
-          AWS_DEFAULT_REGION: 'eu-west-1'
+          AWS_REGION: 'eu-west-1'
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
