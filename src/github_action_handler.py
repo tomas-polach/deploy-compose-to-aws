@@ -2,9 +2,11 @@ import os
 import json
 import asyncio
 from src.deploy import Deployment
+from pprint import pprint as pp
 
 
 def github_action_handler():
+    pp(os.environ)
     cf_stack_prefix = os.getenv("INPUT_CF_STACK_PREFIX", None)
     env_name = os.getenv("INPUT_ENV_NAME", None)
     docker_compose_path = os.getenv("INPUT_DOCKER_COMPOSE_PATH", None)
