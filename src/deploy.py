@@ -247,6 +247,7 @@ class Deployment:
 {build_target_str} \
 --tag {service_image_uri} \
 --push \
+--quiet \
 {service_build_context}"""
             logger.debug(
                 f"Building and tagging docker images for service {service_name} with Buildx ...\n  {build_cmd}"
@@ -254,7 +255,7 @@ class Deployment:
             build_cmds.append(build_cmd)
 
         await asyncio.gather(
-            *[run_cmd_async(build_cmd, log_error_only=True) for build_cmd in build_cmds]
+            *[run_cmd_async(build_cmd) for build_cmd in build_cmds]
         )
 
     def _cf_ci_generate(
