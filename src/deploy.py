@@ -330,10 +330,8 @@ class Deployment:
         }
 
         build_cmds = []
-        image_uris_to_push = []
         for service_name, service_params in services_with_build.items():
             service_image_uri = docker_image_uri_by_service_name[service_name]
-            image_uris_to_push.append(service_image_uri)
 
             # Handle platform if present
             platform = service_params.get('platform', 'linux/amd64')
@@ -363,7 +361,7 @@ class Deployment:
             else:
                 raise ValueError(f"Invalid build context for service {service_name}")
 
-            # Build and tag images with Buildx, using the cache from the local storage
+            # Build, tag and push images with Buildx, using the cache from the local storage
             logger.debug(f"Building and tagging docker images for service {service_name} with Buildx ...")
             build_cmd = f"""docker buildx build \
 {platform_str} \
@@ -378,21 +376,12 @@ class Deployment:
 {service_build_context}"""
             build_cmds.append(build_cmd)
 
-        logger.debug(f"Building and tagging docker images ...")
+        logger.debug(f"Building, tagging and pushing docker images ...")
         pp(build_cmds)
         await asyncio.gather(
             *[
                 Deployment._cmd_run_async(build_cmd)
                 for build_cmd in build_cmds
-            ]
-        )
-
-        # Push images
-        logger.debug(f"Pushing docker images ...")
-        await asyncio.gather(
-            *[
-                Deployment._cmd_run_async(f"docker push {image_uri}")
-                for image_uri in image_uris_to_push
             ]
         )
 
