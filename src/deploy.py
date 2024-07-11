@@ -35,26 +35,26 @@ class Deployment:
         self,
         cf_stack_prefix: str,
         aws_region: str,
-        env_name: str = DEFAULT_ENVIRONMENT,
+        env_name: str | None = None,
         git_branch: str | None = None,
         git_commit: str | None = None,
-        docker_compose_path: str = "docker-compose.yaml",
-        ecs_composex_path: str = "ecs-composex.yaml",
-        ecs_composex_subs: dict[str, str] = {},
+        docker_compose_path: str | None = None,
+        ecs_composex_path: str | None = None,
+        ecs_composex_subs: dict[str, str] | None = None,
         ecr_keep_last_n_images: int | None = 10,
-        mutable_tags: bool = True,
+        mutable_tags: bool | None = None,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
-        temp_dir: str | None = DEFAULT_TEMP_DIR,
+        temp_dir: str = DEFAULT_TEMP_DIR,
         keep_temp_files: bool = True,
     ):
         self.project_name = slugify(cf_stack_prefix)
-        self.env_name = slugify(env_name)
+        self.env_name = slugify(env_name or DEFAULT_ENVIRONMENT)
         self.aws_region = aws_region
-        self.docker_compose_path = Path(docker_compose_path)
-        self.ecs_compose_orig_path = Path(ecs_composex_path)
-        self.ecs_composex_subs = ecs_composex_subs
+        self.docker_compose_path = Path(docker_compose_path or "docker-compose.yaml")
+        self.ecs_compose_orig_path = Path(ecs_composex_path or "ecs-composex.yaml")
+        self.ecs_composex_subs = ecs_composex_subs or {}
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
-        self.mutable_tags = mutable_tags
+        self.mutable_tags = mutable_tags or False
         self.image_uri_format = image_uri_format
 
         # compose internal params
