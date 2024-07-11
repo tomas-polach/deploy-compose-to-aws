@@ -58,8 +58,9 @@ jobs:
 ## Todos
 
 - [ ] add cf_disable_rollback param
-- [ ] Add examples
 - [ ] Print CF errors in action UI
+- [ ] Add examples
+- [ ] PR to ECS Compose X, then use official dependency
 
 ## What this does under the hood
 
@@ -70,3 +71,9 @@ jobs:
      - build local images, tag and push to ECR
 1. generate CloudFormation: main stack
 1. deploy cloud formation
+
+## Format code
+
+```bash
+black src
+```
