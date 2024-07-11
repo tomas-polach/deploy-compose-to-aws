@@ -5,22 +5,28 @@ from src.deploy import Deployment
 from pprint import pprint as pp
 
 
+def getenv(var_name: str, default=None):
+    # returns None also if the value is an empty string
+    value = os.getenv(var_name, default)
+    return value if value != '' else default
+
+
 def github_action_handler():
     pp(os.environ)
-    cf_stack_prefix = os.getenv("INPUT_CF_STACK_PREFIX", None)
-    env_name = os.getenv("INPUT_ENV_NAME", None)
-    docker_compose_path = os.getenv("INPUT_DOCKER_COMPOSE_PATH", None)
-    ecs_composex_path = os.getenv("INPUT_ECS_COMPOSEX_PATH", None)
-    ecs_composex_subs = os.getenv("INPUT_ECS_COMPOSEX_SUBS", "{}")
-    ecr_keep_last_n_images = os.getenv("INPUT_ECR_KEEP_LAST_N_IMAGES", None)
+    cf_stack_prefix = getenv("INPUT_CF_STACK_PREFIX", None)
+    env_name = getenv("INPUT_ENV_NAME", None)
+    docker_compose_path = getenv("INPUT_DOCKER_COMPOSE_PATH", None)
+    ecs_composex_path = getenv("INPUT_ECS_COMPOSEX_PATH", None)
+    ecs_composex_subs = getenv("INPUT_ECS_COMPOSEX_SUBS", "{}")
+    ecr_keep_last_n_images = getenv("INPUT_ECR_KEEP_LAST_N_IMAGES", None)
 
-    aws_region = os.getenv("AWS_REGION", None) or os.getenv("AWS_DEFAULT_REGION", None)
+    aws_region = getenv("AWS_REGION", None) or getenv("AWS_DEFAULT_REGION", None)
 
-    is_github_action = os.getenv("GITHUB_ACTIONS") == "true"
-    github_workspace_dir = os.getenv("GITHUB_WORKSPACE", "/github/workspace")
-    git_repo_name = os.getenv("GITHUB_REPOSITORY", None)
-    git_ref = os.getenv("GITHUB_REF", None)
-    git_commit = os.getenv("GITHUB_SHA", None)
+    is_github_action = getenv("GITHUB_ACTIONS") == "true"
+    github_workspace_dir = getenv("GITHUB_WORKSPACE", "/github/workspace")
+    git_repo_name = getenv("GITHUB_REPOSITORY", None)
+    git_ref = getenv("GITHUB_REF", None)
+    git_commit = getenv("GITHUB_SHA", None)
 
     # check required env vars
 
