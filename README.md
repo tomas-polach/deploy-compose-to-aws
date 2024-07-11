@@ -27,10 +27,32 @@ jobs:
 
       - name: Deploy to AWS
         uses: tomas-polach/deploy-compose-to-aws@v1
+        id: deploy
+        env:
+          AWS_DEFAULT_REGION: 'eu-west-1'
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # optional:
+      - name: Extract outputs
+        id: deploy-outputs
+        run: |
+          load_balancer_dns_name=$(jq -r '.by_output_key.publicalbDNSName' "${{ steps.deploy.outputs.cf-output-path }}")
+          echo "load-balancer-dns-name=$load_balancer_dns_name" >> $GITHUB_OUTPUT
+
+      - name: Use outputs
+        run: |
+          echo "Load balancer DNS name: ${{ steps.deploy-outputs.outputs.load-balancer-dns-name }}"
+
+      # optional: allow download of cloudformation templates and outputs for debugging
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          aws-region: 'eu-west-1'
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          name: deployment
+          path: _deployment_tmp
+          retention-days: 7
+
+
 ```
 
 ## Todos
@@ -38,21 +60,14 @@ jobs:
 - [ ] Format code
 - [ ] Refactor for readability
 - [ ] Add examples
-- [ ] Split out creation of ELB domain into separate action
-- [ ] Provide CF outputs in the action results
 - [ ] Print CF errors in action UI
 
 ## What this does under the hood
 
-1. compile future docker image URIs for locally built docker images
-1. CloudFormation: ci stack (ECR repos for locally built docker images and ci bucket)
+1. CloudFormation: deploy ci stack (ECR repos for locally built docker images and S3 bucket)
      - note: ci cf template can't be uploaded to S3 because the ci bucket will be created in the ci stack
 1. Docker:
      - login to ECR
      - build local images, tag and push to ECR
-     - generate docker-compose.override.yaml which will add docker image URIs to services with local docker builds, so that docker knows where to push the locally built images to
-1. create SSL cert (has to be in the same account as the elb?)
 1. generate CloudFormation: main stack
 1. deploy cloud formation
-1. create CNAME record with ELB as target
-1. delete temp dir
