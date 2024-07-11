@@ -450,6 +450,7 @@ build --parallel"""
         }
 
         # Write outputs to a file
+        print(self.cf_main_output_path.resolve())
         with self.cf_main_output_path.open("w") as f:
             f.write(
                 json.dumps(
@@ -465,4 +466,4 @@ build --parallel"""
 
         # Optionally, set an output to indicate the file path
         with open(os.environ["GITHUB_OUTPUT"], "a") as gh_output:
-            gh_output.write(f"cf-output-path={self.cf_main_output_path}\n")
+            gh_output.write(f"cf-output-path={self.cf_main_output_path.resolve()}\n")
