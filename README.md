@@ -51,14 +51,13 @@ jobs:
           name: deployment
           path: _deployment_tmp
           retention-days: 7
-
-
 ```
 
 ## Todos
 
 - [ ] add cf_disable_rollback param
 - [ ] Print CF errors in action UI
+- [ ] Deploy to public docker hub
 - [ ] Add examples
 - [ ] PR to ECS Compose X, then use official dependency
 
