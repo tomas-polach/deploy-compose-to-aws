@@ -49,7 +49,6 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        ls -la ${GITHUB_ACTION_PATH}
         pip install -r ${GITHUB_ACTION_PATH}/requirements.txt -q
 
     - # Add support for more platforms with QEMU
@@ -69,8 +68,10 @@ runs:
 
     - name: Deploy
       shell: bash
+      env:
+        GITHUB_WORKSPACEE: ${{ github.workspace }}
       run: |
-        cd ${{ github.workspace }}
+        echo "RRRRRRR $GITHUB_WORKSPACEE"
         python -m src.cli \
           --cf-stack-prefix=${{ inputs.cf-stack-prefix }} \
           --env-name=${{ inputs.env-name }} \
