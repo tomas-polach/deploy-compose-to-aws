@@ -312,16 +312,25 @@ class Deployment:
             yaml.dump(override_config, fd)
 
     async def _docker_build_tag_push(self, image_uris: list[str]) -> None:
-        # Build and tag images
-        logger.debug(f"Building and tagging docker images ...")
-        build_cmd = f"""COMPOSE_DOCKER_CLI_BUILD=1 \
-DOCKER_BUILDKIT=1 \
-DOCKER_DEFAULT_PLATFORM=linux/amd64 \
-docker-compose \
--p "{self.stack_name}" \
--f "{str(self.docker_compose_path)}" \
--f "{str(self.docker_compose_override_path)}" \
-build --parallel"""
+        # Create a new Buildx builder instance and use it
+        logger.debug(f"Setting up Docker Buildx ...")
+        buildx_create_cmd = "docker buildx create --use"
+        await Deployment._cmd_run_async(buildx_create_cmd)
+
+        # Define the cache image name
+        cache_image = f"{self.aws_account_id}.dkr.ecr.{self.aws_region}.amazonaws.com/{self.stack_name}:buildcache"
+
+        # Build and tag images with Buildx, using the cache from the registry and pushing the cache back to the registry
+        logger.debug(f"Building and tagging docker images with Buildx ...")
+        build_cmd = f"""docker buildx build \
+--platform linux/amd64 \
+--cache-from=type=registry,ref={cache_image} \
+--cache-to=type=registry,ref={cache_image},mode=max \
+--file {str(self.docker_compose_path)} \
+--file {str(self.docker_compose_override_path)} \
+--tag {self.stack_name}:latest \
+--push \
+."""
         await Deployment._cmd_run_async(build_cmd)
 
         # Push images
