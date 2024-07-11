@@ -70,7 +70,7 @@ runs:
     - name: Deploy
       shell: bash
       run: |
-        cd ${GITHUB_ACTION_PATH}
+        cd ${{ github.workspace }}
         python -m src.cli \
           --cf-stack-prefix=${{ inputs.cf-stack-prefix }} \
           --env-name=${{ inputs.env-name }} \
