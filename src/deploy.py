@@ -117,7 +117,7 @@ class Deployment:
         self._docker_generate_override_file(docker_image_uri_by_service_name)
         await self._docker_login_ecr()
         await self._docker_build_tag_push(
-            image_uris=list(docker_image_uri_by_service_name.values())
+            docker_image_uri_by_service_name=docker_image_uri_by_service_name
         )
 
         # CloudFormation: main stack
@@ -311,7 +311,7 @@ class Deployment:
         with self.docker_compose_override_path.open("w") as fd:
             yaml.dump(override_config, fd)
 
-    async def _docker_build_tag_push(self, image_uris: list[str]) -> None:
+    async def _docker_build_tag_push(self, docker_image_uri_by_service_name: dict[str, str]) -> None:
         # Create a new Buildx builder instance and use it
         logger.debug(f"Setting up Docker Buildx ...")
         buildx_create_cmd = "docker buildx create --use"
@@ -320,25 +320,69 @@ class Deployment:
         # Define the cache image name
         cache_image = f"{self.aws_account_id}.dkr.ecr.{self.aws_region}.amazonaws.com/{self.stack_name}:buildcache"
 
-        # Build and tag images with Buildx, using the cache from the registry and pushing the cache back to the registry
-        logger.debug(f"Building and tagging docker images with Buildx ...")
-        build_cmd = f"""docker buildx build \
+        # Load Docker Compose configuration
+        with open(self.docker_compose_path, 'r') as file:
+            docker_compose = yaml.safe_load(file)
+
+        services_with_build = {
+            service_name: service_params
+            for service_name, service_params in docker_compose.get("services", {}).items()
+            if "build" in service_params
+        }
+
+        build_cmds = []
+        image_uris_to_push = []
+        for service_name, service_params in services_with_build.items():
+            service_image_uri = docker_image_uri_by_service_name[service_name]
+            image_uris_to_push.append(service_image_uri)
+            build_context = service_params['build']
+
+            # Determine the build context and Dockerfile path
+            if isinstance(build_context, str):
+                service_build_context = build_context
+                service_dockerfile = 'Dockerfile'
+            elif isinstance(build_context, dict):
+                service_build_context = build_context.get('context', '.')
+                service_dockerfile = build_context.get('dockerfile', 'Dockerfile')
+            else:
+                raise ValueError(f"Invalid build context for service {service_name}")
+
+            # Handle build args if present
+            build_args = build_context.get('args', {})
+            build_args_str = ' '.join([f"--build-arg {k}={v}" for k, v in build_args.items()])
+
+            # Handle target if present
+            build_target = build_context.get('target', None)
+            build_target_str = f"--target {build_target}" if build_target else ''
+
+            # Build and tag images with Buildx, using the cache from the registry and pushing the cache back to the registry
+            logger.debug(f"Building and tagging docker images for service {service_name} with Buildx ...")
+            build_cmd = f"""docker buildx build \
 --platform linux/amd64 \
 --cache-from=type=registry,ref={cache_image} \
 --cache-to=type=registry,ref={cache_image},mode=max \
---file {str(self.docker_compose_path)} \
---file {str(self.docker_compose_override_path)} \
---tag {self.stack_name}:latest \
+--file {service_dockerfile} \
+{build_args_str} \
+{build_target_str} \
+--tag {service_image_uri} \
 --push \
-."""
-        await Deployment._cmd_run_async(build_cmd)
+{service_build_context}"""
+            build_cmds.append(build_cmd)
+
+        logger.debug(f"Building and tagging docker images ...")
+        await asyncio.gather(
+            *[
+                Deployment._cmd_run_async(build_cmd)
+                for build_cmd in build_cmds
+            ]
+        )
 
         # Push images
         logger.debug(f"Pushing docker images ...")
         await asyncio.gather(
             *[
                 Deployment._cmd_run_async(f"docker push {image_uri}")
-                for image_uri in image_uris
+                for image_uri in image_uris_to_push
             ]
         )
 
