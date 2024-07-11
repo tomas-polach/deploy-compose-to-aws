@@ -29,6 +29,7 @@ inputs:
 outputs:
   cf-output-path:
     description: 'A JSON string containing all CloudFormation outputs in JSON format'
+    value: ${{ steps.deploy.outputs.cf-output-path }}
 
 runs:
   using: 'composite'
@@ -68,6 +69,7 @@ runs:
 
     - name: Deploy
       shell: bash
+      id: deploy
       env:
         GITHUB_WORKSPACE: ${{ github.workspace }}
       run: |
