@@ -450,7 +450,6 @@ build --parallel"""
         }
 
         # Write outputs to a file
-        print(self.cf_main_output_path.resolve())
         with self.cf_main_output_path.open("w") as f:
             f.write(
                 json.dumps(
