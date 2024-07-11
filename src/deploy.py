@@ -374,7 +374,7 @@ class Deployment:
 {build_target_str} \
 --tag {service_image_uri} \
 --push \
-{service_build_context} > /dev/null 2> >(grep -i "error\\|warning" >&2)"""
+{service_build_context}"""
             build_cmds.append(build_cmd)
 
         logger.debug(f"Building and tagging docker images ...")
