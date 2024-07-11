@@ -72,6 +72,12 @@ runs:
       id: deploy
       env:
         GITHUB_WORKSPACE: ${{ github.workspace }}
+        INPUT_CF_STACK_PREFIX: ${{ inputs.cf-stack-prefix }}
+        INPUT_ENV_NAME: ${{ inputs.env-name }}
+        INPUT_DOCKER_COMPOSE_PATH: ${{ inputs.docker-compose-path }}
+        INPUT_ECS_COMPOSEX_PATH: ${{ inputs.ecs-composex-path }}
+        INPUT_ECS_COMPOSEX_SUBS: ${{ inputs.ecs-composex-subs }}
+        INPUT_ECR_KEEP_LAST_N_IMAGES: ${{ inputs.ecr-keep-last-n-images }}
       run: |
         cd ${GITHUB_ACTION_PATH}
         python -m src.github_action_handler
