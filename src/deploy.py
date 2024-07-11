@@ -1,6 +1,5 @@
 import asyncio
 import json
-import subprocess
 import shutil
 import os
 import string
@@ -8,7 +7,6 @@ import base64
 from typing import Callable
 from pathlib import Path
 from datetime import datetime
-from pprint import pprint as pp
 import yaml
 import boto3
 from slugify import slugify
@@ -19,11 +17,14 @@ from src.utils.cloudformation_deployer import CloudFormationDeployer
 from src.utils.logger import get_logger
 from src.utils.to_pascal_case import to_pascal_case
 from src.utils.generate_random_id import generate_random_id
+from src.utils.run_cmd import run_cmd_async
+from src.utils.github_helper import git_get_branch_and_hash
+
 
 logger = get_logger(__name__)
 
+
 DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}:{git_commit}"
-DEFAULT_IMAGE_CACHE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}:buildcache"
 DEFAULT_ENVIRONMENT = "dev"
 DEFAULT_TEMP_DIR = "_deployment_tmp"
 DEFAULT_ECS_COMPOSEX_OUTPUT_DIR = f"{DEFAULT_TEMP_DIR}/cf_output"
@@ -46,8 +47,6 @@ class Deployment:
         temp_dir: str | None = DEFAULT_TEMP_DIR,
         keep_temp_files: bool = True,
     ):
-        pp(ecs_compose_x_sub)
-
         self.project_name = slugify(cf_stack_prefix)
         self.env_name = slugify(env_name)
         self.aws_region = aws_region
@@ -57,7 +56,6 @@ class Deployment:
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.mutable_tags = mutable_tags
         self.image_uri_format = image_uri_format
-        self.image_cache_uri_format = DEFAULT_IMAGE_CACHE_URI_FORMAT
 
         # compose internal params
         self.stack_name = f"{self.project_name}-{self.env_name}"
@@ -68,10 +66,9 @@ class Deployment:
             self.git_branch = git_branch
             self.git_commit = git_commit[:8]
         else:
-            self.git_branch, self.git_commit = Deployment._git_get_branch_and_hash()
-        ts_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_") + generate_random_id(
-            length=6
-        )
+            self.git_branch, self.git_commit = git_get_branch_and_hash()
+
+        ts_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S_") + generate_random_id(6)
 
         self.ci_s3_key_prefix = f"{self.stack_name}/{ts_str}"
         self.keep_temp_files = keep_temp_files
@@ -87,11 +84,11 @@ class Deployment:
             Path(self.temp_dir) / f"docker-compose.override.yaml"
         )
 
-        self.aws_account_id = Deployment._aws_get_account_id()
         self.ecs_client = boto3.client("ecs", region_name=self.aws_region)
         self.s3_client = boto3.client("s3", region_name=self.aws_region)
         self.ecr_client = boto3.client("ecr", region_name=self.aws_region)
         self.cfd = CloudFormationDeployer(region_name=self.aws_region)
+        self.aws_account_id = self.cfd.get_account_id()
 
     async def run(self):
         # compile future docker image URIs for locally built docker images
@@ -99,18 +96,7 @@ class Deployment:
 
         # CloudFormation: ci stack (ECR repos for locally built docker images and ci bucket)
         # note: ci cf template can't be uploaded to S3 because the ci bucket will be created in the ci stack
-        unique_repo_names = list(
-            set(
-                map(
-                    self._docker_get_repo_name_from_uri,
-                    docker_image_uri_by_service_name.values(),
-                )
-            )
-        )
-        cf_ci_template = self._cf_ci_generate(
-            unique_repo_names=unique_repo_names,
-            ecr_keep_last_n_images=self.ecr_keep_last_n_images,
-        )
+        cf_ci_template = self._cf_ci_generate(docker_image_uri_by_service_name)
         self._cf_ci_deploy(cf_ci_template)
 
         # Docker:
@@ -118,15 +104,13 @@ class Deployment:
         # so that docker knows where to push the locally built images to
         self._docker_generate_override_file(docker_image_uri_by_service_name)
         await self._docker_login_ecr()
-        await self._docker_build_tag_push(
-            docker_image_uri_by_service_name=docker_image_uri_by_service_name
-        )
+        await self._docker_build_tag_push(docker_image_uri_by_service_name)
 
         # CloudFormation: main stack
         self._cf_handle_placeholders()
         self._cf_generate()
         self._cf_update(template_modifier=self._cf_update_template_urls)
-        self._cf_upload_to_s3(dir_path=self.cf_main_dir)
+        self._cf_upload_to_s3()
         self._cf_deploy()
         self._cf_store_outputs()
 
@@ -135,63 +119,6 @@ class Deployment:
             shutil.rmtree(self.temp_dir)
 
         # todo: keep only the last 10 versions of the ci stack on S3
-
-    @staticmethod
-    def _aws_get_account_id() -> str:
-        cmd = "aws sts get-caller-identity --query Account --output text"
-        result = Deployment._cmd_run(cmd)
-        return result.strip()
-
-    @staticmethod
-    def _git_get_branch_and_hash() -> tuple[str, str] | tuple[None, None]:
-        try:
-            branch_name = (
-                subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-                .strip()
-                .decode("utf-8")
-            )
-            commit_hash = (
-                subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
-                .strip()
-                .decode("utf-8")
-            )
-            return branch_name, commit_hash
-        except subprocess.CalledProcessError as e:
-            logger.warning(f"An error occurred while running git commands: {e}")
-            return None, None
-
-    @staticmethod
-    async def _cmd_run_async(cmd: str, input: bytes | None = None) -> str:
-        process = await asyncio.create_subprocess_shell(
-            cmd,
-            stdin=asyncio.subprocess.PIPE if input else None,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        if input is not None:
-            stdout, stderr = await process.communicate(input=input)
-        else:
-            stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            raise ValueError(f"Command failed: {cmd}\n{stderr.decode()}")
-        return stdout.decode()
-
-    @staticmethod
-    def _cmd_run(cmd: str, input: bytes | None = None) -> str:
-        process = subprocess.Popen(
-            cmd,
-            shell=True,
-            stdin=subprocess.PIPE if input else None,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        if input is not None:
-            stdout, stderr = process.communicate(input=input)
-        else:
-            stdout, stderr = process.communicate()
-        if process.returncode != 0:
-            raise ValueError(f"Command failed: {cmd}\n{stderr.decode()}")
-        return stdout.decode()
 
     async def _docker_login_ecr(self) -> None:
         # Get the ECR authorization token
@@ -202,72 +129,7 @@ class Deployment:
         username, password = base64.b64decode(auth_token).decode('utf-8').split(':')
         # Login to the ECR registry
         cmd = f"docker login --username {username} --password-stdin {registry_url}"
-        #subprocess.run(login_command, shell=True, check=True)
-        await Deployment._cmd_run_async(cmd, input=password.encode())
-
-    def _cf_ci_generate(
-        self, unique_repo_names: list[str], ecr_keep_last_n_images: int | None = 10
-    ) -> dict[str, dict]:
-        cf_template = {
-            "AWSTemplateFormatVersion": "2010-09-09",
-            "Resources": {
-                # Create bucket for deployment artifacts
-                "DeploymentBucket": {
-                    "Type": "AWS::S3::Bucket",
-                    "Properties": {
-                        "BucketName": self.ci_s3_bucket_name,
-                        "VersioningConfiguration": {"Status": "Enabled"},
-                    },
-                }
-            },
-        }
-
-        # create ECR repositories
-        for repo_name in unique_repo_names:
-            resource_name = to_pascal_case(f"{repo_name}-repository")
-            cf_template["Resources"][resource_name] = {
-                "Type": "AWS::ECR::Repository",
-                "Properties": {
-                    "RepositoryName": repo_name,
-                    # todo: replace this with registry level scan filters as this prop has been deprecated
-                    "ImageScanningConfiguration": {"scanOnPush": True},
-                    "ImageTagMutability": (
-                        "MUTABLE" if self.mutable_tags else "IMMUTABLE"
-                    ),
-                },
-            }
-
-            if ecr_keep_last_n_images is not None:
-                # create ECR with policy retaining max N images
-                cf_template["Resources"][resource_name]["Properties"][
-                    "LifecyclePolicy"
-                ] = {
-                    "LifecyclePolicyText": json.dumps(
-                        {
-                            "rules": [
-                                {
-                                    "rulePriority": 1,
-                                    "description": f"Keep last {ecr_keep_last_n_images} images",
-                                    "selection": {
-                                        "tagStatus": "any",
-                                        "countType": "imageCountMoreThan",
-                                        "countNumber": ecr_keep_last_n_images,
-                                    },
-                                    "action": {"type": "expire"},
-                                }
-                            ]
-                        }
-                    )
-                }
-
-        return cf_template
-
-    def _cf_ci_deploy(self, cf_template: dict[str, dict]) -> None:
-        self.cfd.create_or_update_stack(
-            stack_name=self.ci_stack_name,
-            template_body=yaml.dump(cf_template),
-        )
-        self.cfd.wait_for_stack_completion(stack_name=self.ci_stack_name)
+        await run_cmd_async(cmd, input=password.encode())
 
     def _docker_get_image_uris_by_service_name(self) -> dict[str, str]:
         with self.docker_compose_path.open("r") as fd:
@@ -317,7 +179,7 @@ class Deployment:
         # Create a new Buildx builder instance and use it
         logger.debug(f"Setting up Docker Buildx ...")
         buildx_create_cmd = "docker buildx create --use"
-        await Deployment._cmd_run_async(buildx_create_cmd)
+        await run_cmd_async(buildx_create_cmd)
 
         # Load Docker Compose configuration
         with open(self.docker_compose_path, 'r') as file:
@@ -378,10 +240,81 @@ class Deployment:
 
         await asyncio.gather(
             *[
-                Deployment._cmd_run_async(build_cmd)
+                run_cmd_async(build_cmd)
                 for build_cmd in build_cmds
             ]
         )
+
+    def _cf_ci_generate(self, docker_image_uri_by_service_name: dict[str, str]) -> dict[str, dict]:
+        unique_repo_names = list(
+            set(
+                map(
+                    self._docker_get_repo_name_from_uri,
+                    docker_image_uri_by_service_name.values(),
+                )
+            )
+        )
+
+        cf_template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Resources": {
+                # Create bucket for deployment artifacts
+                "DeploymentBucket": {
+                    "Type": "AWS::S3::Bucket",
+                    "Properties": {
+                        "BucketName": self.ci_s3_bucket_name,
+                        "VersioningConfiguration": {"Status": "Enabled"},
+                    },
+                }
+            },
+        }
+
+        # create ECR repositories
+        for repo_name in unique_repo_names:
+            resource_name = to_pascal_case(f"{repo_name}-repository")
+            cf_template["Resources"][resource_name] = {
+                "Type": "AWS::ECR::Repository",
+                "Properties": {
+                    "RepositoryName": repo_name,
+                    # todo: replace this with registry level scan filters as this prop has been deprecated
+                    "ImageScanningConfiguration": {"scanOnPush": True},
+                    "ImageTagMutability": (
+                        "MUTABLE" if self.mutable_tags else "IMMUTABLE"
+                    ),
+                },
+            }
+
+            if self.ecr_keep_last_n_images is not None:
+                # create ECR with policy retaining max N images
+                cf_template["Resources"][resource_name]["Properties"][
+                    "LifecyclePolicy"
+                ] = {
+                    "LifecyclePolicyText": json.dumps(
+                        {
+                            "rules": [
+                                {
+                                    "rulePriority": 1,
+                                    "description": f"Keep last {self.ecr_keep_last_n_images} images",
+                                    "selection": {
+                                        "tagStatus": "any",
+                                        "countType": "imageCountMoreThan",
+                                        "countNumber": self.ecr_keep_last_n_images,
+                                    },
+                                    "action": {"type": "expire"},
+                                }
+                            ]
+                        }
+                    )
+                }
+
+        return cf_template
+
+    def _cf_ci_deploy(self, cf_template: dict[str, dict]) -> None:
+        self.cfd.create_or_update_stack(
+            stack_name=self.ci_stack_name,
+            template_body=yaml.dump(cf_template),
+        )
+        self.cfd.wait_for_stack_completion(stack_name=self.ci_stack_name)
 
     def _cf_handle_placeholders(self):
         with self.ecs_compose_orig_path.open("r") as f:
@@ -448,12 +381,12 @@ class Deployment:
                         )
         return cf_template_by_filename
 
-    def _cf_upload_to_s3(self, dir_path: Path) -> None:
+    def _cf_upload_to_s3(self) -> None:
         # upload generated cf templates to S3
-        for file_path in dir_path.glob("*"):
+        for file_path in self.cf_main_dir.glob("*"):
             if file_path.suffix in [".yaml", ".yml", ".json"]:
                 with open(file_path, "rb") as file:
-                    s3_key = f"{self.ci_s3_key_prefix}/{dir_path.name}/{file_path.name}"
+                    s3_key = f"{self.ci_s3_key_prefix}/{self.cf_main_dir.name}/{file_path.name}"
                     self.s3_client.upload_fileobj(file, self.ci_s3_bucket_name, s3_key)
                     logger.debug(
                         f'Uploaded "{s3_key}" to S3 bucket "{self.ci_s3_bucket_name}'
@@ -513,6 +446,6 @@ class Deployment:
                 )
             )
 
-        # Optionally, set an output to indicate the file path
+        # Set an output to indicate the file path
         with open(os.environ["GITHUB_OUTPUT"], "a") as gh_output:
             gh_output.write(f"cf-output-path={self.cf_main_output_path.resolve()}\n")
