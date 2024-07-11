@@ -4,6 +4,7 @@ import subprocess
 import shutil
 import os
 import string
+import base64
 from typing import Callable
 from pathlib import Path
 from datetime import datetime
@@ -87,6 +88,7 @@ class Deployment:
         self.aws_account_id = Deployment._aws_get_account_id()
         self.ecs_client = boto3.client("ecs", region_name=self.aws_region)
         self.s3_client = boto3.client("s3", region_name=self.aws_region)
+        self.ecr_client = boto3.client("ecr", region_name=self.aws_region)
         self.cfd = CloudFormationDeployer(region_name=self.aws_region)
 
     async def run(self):
@@ -190,10 +192,24 @@ class Deployment:
         return stdout.decode()
 
     async def _docker_login_ecr(self) -> None:
-        cmd = f"aws ecr get-login-password --region {self.aws_region}"
-        password = await Deployment._cmd_run_async(cmd)
-        cmd = f"docker login --username AWS --password-stdin {self.aws_account_id}.dkr.ecr.{self.aws_region}.amazonaws.com"
+        # Get the ECR authorization token
+        response = self.ecr_client.get_authorization_token()
+        auth_data = response['authorizationData'][0]
+        auth_token = auth_data['authorizationToken']
+        registry_url = auth_data['proxyEndpoint']
+        # Decode the base64 encoded token
+        username, password = base64.b64decode(auth_token).decode('utf-8').split(':')
+        # Run the docker login command
+        # cmd = f"docker login --username {username} --password {password} {registry_url}"
+        print('-------', username, registry_url)
+        cmd = f"docker login --username {username} --password-stdin {registry_url}"
+        #subprocess.run(login_command, shell=True, check=True)
         await Deployment._cmd_run_async(cmd, input=password.encode())
+
+        # cmd = f"aws ecr get-login-password --region {self.aws_region}"
+        # password = await Deployment._cmd_run_async(cmd)
+        # cmd = f"docker login --username AWS --password-stdin {self.aws_account_id}.dkr.ecr.{self.aws_region}.amazonaws.com"
+        # await Deployment._cmd_run_async(cmd, input=password.encode())
 
     def _cf_ci_generate(
         self, unique_repo_names: list[str], ecr_keep_last_n_images: int | None = 10
