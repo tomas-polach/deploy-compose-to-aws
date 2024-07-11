@@ -1,0 +1,43 @@
+name: 'CloudFormation Deploy'
+description: 'Deploy to AWS CloudFormation using Python 3.11 and AWS CLI'
+inputs:
+  cf-stack-prefix:
+    description: 'The prefix for the CloudFormation stack name. Fallback to repo name.'
+    required: false
+    default: ""
+  env-name:
+    description: 'The environment (will be added as suffix to the stack prefix). Fallback to branch name.'
+    required: false
+    default: ""
+  docker-compose-path:
+    description: 'The docker compose path. Defaults to "docker-compose.yaml"'
+    required: false
+    default: ""
+  ecs-compose-x-sub:
+    description: 'A JSON string containing the ECS compose substitutes. Defaults to "{}"'
+    required: false
+    default: "{}"
+  ecs-compose-x-path:
+    description: 'The AWS compose path. Defaults to "aws-compose-x.yaml"'
+    required: false
+    default: ""
+  ecr-keep-last-n-images:
+    description: 'The number of images to keep in the ECR repository. Defaults to 10.'
+    required: false
+    default: "10"
+
+outputs:
+  cf-output-path:
+    description: 'A JSON string containing all CloudFormation outputs in JSON format'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - --cf-stack-prefix=${{ inputs.cf-stack-prefix }}
+    - --env-name=${{ inputs.env-name }}
+    - --docker-compose-path=${{ inputs.docker-compose-path }}
+    - --ecs-compose-x-sub=${{ inputs.ecs-compose-x-sub }}
+    - --ecs-compose-x-path=${{ inputs.ecs-compose-x-path }}
+    - --ecr-keep-last-n-images=${{ inputs.ecr-keep-last-n-images }}
+
