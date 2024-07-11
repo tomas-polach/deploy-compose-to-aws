@@ -335,30 +335,39 @@ class Deployment:
         for service_name, service_params in services_with_build.items():
             service_image_uri = docker_image_uri_by_service_name[service_name]
             image_uris_to_push.append(service_image_uri)
-            build_context = service_params['build']
+
+            # Handle platform if present
+            platform = service_params.get('platform', 'linux/amd64')
+            platform_str = f"--platform {platform}"
 
             # Determine the build context and Dockerfile path
+            build_context = service_params['build']
             if isinstance(build_context, str):
+                # e.g. build: ./my-dir
                 service_build_context = build_context
-                service_dockerfile = 'Dockerfile'
+                service_dockerfile = Path(build_context) / 'Dockerfile'
+
+                build_args_str = ''
+                build_target_str = ''
             elif isinstance(build_context, dict):
+                # e.g. build: { context: ./my-dir, dockerfile: Dockerfile.dev, args: { key: value } }
                 service_build_context = build_context.get('context', '.')
-                service_dockerfile = build_context.get('dockerfile', 'Dockerfile')
+                service_dockerfile = Path(service_build_context) / build_context.get('dockerfile', 'Dockerfile')
+
+                # Handle build args if present
+                build_args = build_context.get('args', {})
+                build_args_str = ' '.join([f"--build-arg {k}={v}" for k, v in build_args.items()])
+
+                # Handle target if present
+                build_target = build_context.get('target', None)
+                build_target_str = f"--target {build_target}" if build_target else ''
             else:
                 raise ValueError(f"Invalid build context for service {service_name}")
-
-            # Handle build args if present
-            build_args = build_context.get('args', {})
-            build_args_str = ' '.join([f"--build-arg {k}={v}" for k, v in build_args.items()])
-
-            # Handle target if present
-            build_target = build_context.get('target', None)
-            build_target_str = f"--target {build_target}" if build_target else ''
 
             # Build and tag images with Buildx, using the cache from the registry and pushing the cache back to the registry
             logger.debug(f"Building and tagging docker images for service {service_name} with Buildx ...")
             build_cmd = f"""docker buildx build \
---platform linux/amd64 \
+{platform_str} \
 --cache-from=type=registry,ref={cache_image} \
 --cache-to=type=registry,ref={cache_image},mode=max \
 --file {service_dockerfile} \
