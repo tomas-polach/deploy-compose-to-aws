@@ -71,6 +71,7 @@ runs:
       env:
         GITHUB_WORKSPACE: ${{ github.workspace }}
       run: |
+        cd ${GITHUB_ACTION_PATH}
         python -m src.cli \
           --cf-stack-prefix=${{ inputs.cf-stack-prefix }} \
           --env-name=${{ inputs.env-name }} \
