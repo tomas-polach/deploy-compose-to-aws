@@ -22,9 +22,9 @@ inputs:
     required: false
     default: ""
   ecr-keep-last-n-images:
-    description: 'The number of images to keep in the ECR repository. Defaults to 10.'
+    description: 'The number of images to keep in the ECR repository. Defaults to 10. Set to 0 to keep all.'
     required: false
-    default: "10"
+    default: '10'
 
 outputs:
   cf-output-path:

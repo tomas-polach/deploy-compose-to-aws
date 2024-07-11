@@ -10,7 +10,7 @@ def github_action_handler():
     docker_compose_path = os.getenv("INPUT_DOCKER_COMPOSE_PATH", None)
     ecs_composex_path = os.getenv("INPUT_ECS_COMPOSEX_PATH", None)
     ecs_composex_subs = os.getenv("INPUT_ECS_COMPOSEX_SUBS", "{}")
-    ecr_keep_last_n_images = os.getenv("INPUT_ECR_KEEP_LAST_N_IMAGES", 10)
+    ecr_keep_last_n_images = os.getenv("INPUT_ECR_KEEP_LAST_N_IMAGES", None)
 
     aws_region = os.getenv("AWS_REGION", None) or os.getenv("AWS_DEFAULT_REGION", None)
 
@@ -35,6 +35,18 @@ def github_action_handler():
         raise ValueError(
             "Invalid JSON string provided for ECS Compose X substitutes"
         )
+
+    # convert ecr_keep_last_n_images to int
+    if ecr_keep_last_n_images == "" or ecr_keep_last_n_images == "0":
+        ecr_keep_last_n_images = None
+    elif ecr_keep_last_n_images is not None:
+        try:
+            ecr_keep_last_n_images = int(ecr_keep_last_n_images)
+        except ValueError:
+            raise ValueError(
+                "Invalid value provided for ECR_KEEP_LAST_N_IMAGES. Must be an integer"
+            )
+
 
     # get branch name
     git_branch = git_ref.split("/")[-1] if git_ref is not None else None
