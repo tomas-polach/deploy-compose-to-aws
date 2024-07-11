@@ -23,6 +23,7 @@ from src.utils.generate_random_id import generate_random_id
 logger = get_logger(__name__)
 
 DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}:{git_commit}"
+DEFAULT_IMAGE_CACHE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}:buildcache"
 DEFAULT_ENVIRONMENT = "dev"
 DEFAULT_TEMP_DIR = "_deployment_tmp"
 DEFAULT_ECS_COMPOSEX_OUTPUT_DIR = f"{DEFAULT_TEMP_DIR}/cf_output"
@@ -56,6 +57,7 @@ class Deployment:
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.mutable_tags = mutable_tags
         self.image_uri_format = image_uri_format
+        self.image_cache_uri_format = DEFAULT_IMAGE_CACHE_URI_FORMAT
 
         # compose internal params
         self.stack_name = f"{self.project_name}-{self.env_name}"
@@ -317,9 +319,6 @@ class Deployment:
         buildx_create_cmd = "docker buildx create --use"
         await Deployment._cmd_run_async(buildx_create_cmd)
 
-        # Define the cache image name
-        cache_image = f"{self.aws_account_id}.dkr.ecr.{self.aws_region}.amazonaws.com/{self.stack_name}:buildcache"
-
         # Load Docker Compose configuration
         with open(self.docker_compose_path, 'r') as file:
             docker_compose = yaml.safe_load(file)
@@ -364,12 +363,23 @@ class Deployment:
             else:
                 raise ValueError(f"Invalid build context for service {service_name}")
 
+            image_cache_uri = self.image_cache_uri_format.format(
+                aws_account_id=self.aws_account_id,
+                aws_region=self.aws_region,
+                project_name=self.project_name,
+                env_name=self.env_name,
+                stack_name=self.stack_name,
+                service_name=service_name,
+                git_branch=self.git_branch,
+                git_commit=self.git_commit,
+            )
+
             # Build and tag images with Buildx, using the cache from the registry and pushing the cache back to the registry
             logger.debug(f"Building and tagging docker images for service {service_name} with Buildx ...")
             build_cmd = f"""docker buildx build \
 {platform_str} \
---cache-from=type=registry,ref={cache_image} \
---cache-to=type=registry,ref={cache_image},mode=max \
+--cache-from=type=registry,ref={image_cache_uri} \
+--cache-to=type=registry,ref={image_cache_uri},mode=max \
 --file {service_dockerfile} \
 {build_args_str} \
 {build_target_str} \
