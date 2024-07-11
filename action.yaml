@@ -35,7 +35,7 @@ runs:
   image: 'Dockerfile'
   env:
     # ECS compose x is using AWS_REGION although the official AWS env var is AWS_DEFAULT_REGION
-    AWS_REGION: ${{ env.AWS_DEFAULT_REGION }}
+    AWS_REGION: $AWS_DEFAULT_REGION
   args:
     - --cf-stack-prefix=${{ inputs.cf-stack-prefix }}
     - --env-name=${{ inputs.env-name }}
