@@ -374,10 +374,12 @@ class Deployment:
 {build_target_str} \
 --tag {service_image_uri} \
 --push \
+--quiet \
 {service_build_context}"""
             build_cmds.append(build_cmd)
 
         logger.debug(f"Building and tagging docker images ...")
+        pp(build_cmds)
         await asyncio.gather(
             *[
                 Deployment._cmd_run_async(build_cmd)
