@@ -127,15 +127,13 @@ class Deployment:
     async def _docker_login_ecr(self) -> None:
         # Get the ECR authorization token
         response = self.ecr_client.get_authorization_token()
-        print('GET AUTH RES', response)
         auth_data = response["authorizationData"][0]
         auth_token = auth_data["authorizationToken"]
         registry_url = auth_data["proxyEndpoint"]
         username, password = base64.b64decode(auth_token).decode("utf-8").split(":")
         # Login to the ECR registry
         cmd = f"docker login --username {username} --password-stdin {registry_url}"
-        res = await run_cmd_async(cmd, input=password.encode())
-        print('LOGIN:', res)
+        await run_cmd_async(cmd, input=password.encode())
 
     def _docker_get_image_uris_by_service_name(self) -> dict[str, str]:
         with self.docker_compose_path.open("r") as fd:
