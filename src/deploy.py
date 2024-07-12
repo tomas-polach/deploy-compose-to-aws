@@ -231,9 +231,10 @@ class Deployment:
 
             # handle local files and git repos
             is_git_context = context.startswith('https://') or context.startswith('http://')
-            dockerfile_str = (
-                '' if is_git_context
-                else '--file ' + str(Path(context) / build_props.get('dockerfile', 'Dockerfile'))
+            dockerfile_str = '--file ' + (
+                build_props.get('dockerfile', 'Dockerfile') if is_git_context
+                # in local context, the dockerfile path is relative to the context
+                else str(Path(context) / build_props.get('dockerfile', 'Dockerfile'))
             )
 
             # Handle build args if present
@@ -261,6 +262,7 @@ class Deployment:
 {build_args_str} \
 {build_target_str} \
 --tag {service_image_uri} \
+--quiet \
 --push \
 {context}"""
             logger.debug(
