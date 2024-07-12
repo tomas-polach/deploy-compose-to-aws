@@ -130,7 +130,6 @@ class Deployment:
     async def _docker_login_ecr(self) -> None:
         # Get the ECR authorization token
         response = self.ecr_client.get_authorization_token()
-        response = self.ecr_client.get_login_password()
         auth_data = response["authorizationData"][0]
         auth_token = auth_data["authorizationToken"]
         registry_url = auth_data["proxyEndpoint"]
