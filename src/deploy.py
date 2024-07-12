@@ -24,7 +24,8 @@ from src.utils.github_helper import git_get_branch_and_hash
 logger = get_logger(__name__)
 
 
-DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/x/{service_name}:{git_commit}"
+# !IMPORTANT: path MUST have 3 components (e.g. "/a/b/c") or docker push will fail with HTTP 400
+DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{cf_stack_prefix}/{env_name}/{service_name}:{git_commit}"
 DEFAULT_ENVIRONMENT = "dev"
 DEFAULT_TEMP_DIR = "_deployment_tmp"
 DEFAULT_ECS_COMPOSEX_OUTPUT_DIR = f"{DEFAULT_TEMP_DIR}/cf_output"
@@ -47,7 +48,7 @@ class Deployment:
         temp_dir: str = DEFAULT_TEMP_DIR,
         keep_temp_files: bool = True,
     ):
-        self.project_name = slugify(cf_stack_prefix)
+        self.cf_stack_prefix = slugify(cf_stack_prefix)
         self.env_name = slugify(env_name or DEFAULT_ENVIRONMENT)
         self.aws_region = aws_region
         self.docker_compose_path = Path(docker_compose_path or "docker-compose.yaml")
@@ -58,9 +59,9 @@ class Deployment:
         self.image_uri_format = image_uri_format
 
         # compose internal params
-        self.stack_name = f"{self.project_name}-{self.env_name}"
-        self.ci_stack_name = f"{self.project_name}-{self.env_name}-ci"
-        self.ci_s3_bucket_name = f"{self.project_name}-{self.env_name}-ci"
+        self.stack_name = f"{self.cf_stack_prefix}-{self.env_name}"
+        self.ci_stack_name = f"{self.cf_stack_prefix}-{self.env_name}-ci"
+        self.ci_s3_bucket_name = f"{self.cf_stack_prefix}-{self.env_name}-ci"
 
         if git_branch is not None and git_commit is not None:
             self.git_branch = git_branch
@@ -129,6 +130,7 @@ class Deployment:
     async def _docker_login_ecr(self) -> None:
         # Get the ECR authorization token
         response = self.ecr_client.get_authorization_token()
+        response = self.ecr_client.get_login_password()
         auth_data = response["authorizationData"][0]
         auth_token = auth_data["authorizationToken"]
         registry_url = auth_data["proxyEndpoint"]
@@ -153,7 +155,7 @@ class Deployment:
             service_name: self.image_uri_format.format(
                 aws_account_id=self.aws_account_id,
                 aws_region=self.aws_region,
-                project_name=self.project_name,
+                cf_stack_prefix=self.cf_stack_prefix,
                 env_name=self.env_name,
                 stack_name=self.stack_name,
                 service_name=service_name,
@@ -238,8 +240,7 @@ class Deployment:
                 build_target_str = f"--target {build_target}" if build_target else ""
 
                 # Handle cache_from if present
-                # cache_from = build_context.get("cache_from", 'type=local,src=/tmp/.buildx-cache')
-                cache_from = build_context.get("cache_from", None)
+                cache_from = build_context.get("cache_from", 'type=local,src=/tmp/.buildx-cache')
                 cache_from_str = f"--cache-from {cache_from}" if cache_from else ""
             else:
                 raise ValueError(f"Invalid build context for service {service_name}")
