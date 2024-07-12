@@ -24,7 +24,7 @@ from src.utils.github_helper import git_get_branch_and_hash
 logger = get_logger(__name__)
 
 
-DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/{service_name}:{git_commit}"
+DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{stack_name}/x/{service_name}:{git_commit}"
 DEFAULT_ENVIRONMENT = "dev"
 DEFAULT_TEMP_DIR = "_deployment_tmp"
 DEFAULT_ECS_COMPOSEX_OUTPUT_DIR = f"{DEFAULT_TEMP_DIR}/cf_output"
