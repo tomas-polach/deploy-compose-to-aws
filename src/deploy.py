@@ -309,10 +309,9 @@ class Deployment:
                     "RepositoryName": repo_name,
                     # todo: replace this with registry level scan filters as this prop has been deprecated
                     "ImageScanningConfiguration": {"scanOnPush": True},
-                    "ImageTagMutability": (
-                        # do not set to "IMMUTABLE" or push to ECR might fail with HTTP 400
-                        "MUTABLE",
-                    ),
+                    # do not set to "IMMUTABLE" because push to ECR might fail with HTTP 400
+                    # when using tags like 'latest' or git commit hash
+                    "ImageTagMutability": "MUTABLE",
                 },
             }
 
