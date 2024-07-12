@@ -262,7 +262,6 @@ class Deployment:
 {build_target_str} \
 --tag {service_image_uri} \
 --push \
---quiet \
 {context}"""
             logger.debug(
                 f"Building and tagging docker images for service {service_name} with Buildx ...\n  {build_cmd}"
