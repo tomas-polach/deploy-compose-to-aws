@@ -43,7 +43,6 @@ class Deployment:
         ecs_composex_path: str | None = None,
         ecs_composex_subs: dict[str, str] | None = None,
         ecr_keep_last_n_images: int | None = 10,
-        mutable_tags: bool | None = None,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
         temp_dir: str = DEFAULT_TEMP_DIR,
         keep_temp_files: bool = True,
@@ -55,7 +54,6 @@ class Deployment:
         self.ecs_compose_orig_path = Path(ecs_composex_path or "ecs-composex.yaml")
         self.ecs_composex_subs = ecs_composex_subs or {}
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
-        self.mutable_tags = mutable_tags or False
         self.image_uri_format = image_uri_format
 
         # compose internal params
@@ -312,7 +310,8 @@ class Deployment:
                     # todo: replace this with registry level scan filters as this prop has been deprecated
                     "ImageScanningConfiguration": {"scanOnPush": True},
                     "ImageTagMutability": (
-                        "MUTABLE" if self.mutable_tags else "IMMUTABLE"
+                        # do not set to "IMMUTABLE" or push to ECR might fail with HTTP 400
+                        "MUTABLE",
                     ),
                 },
             }
