@@ -84,15 +84,17 @@ class Deployment:
             Path(self.temp_dir) / f"docker-compose.override.yaml"
         )
 
+        # set redundant env vars since some libraries use AWS_DEFAULT_REGION while others use AWS_REGION
+        os.environ["AWS_REGION"] = aws_region
+        os.environ["AWS_DEFAULT_REGION"] = aws_region
+
         self.ecs_client = boto3.client("ecs", region_name=self.aws_region)
         self.s3_client = boto3.client("s3", region_name=self.aws_region)
         self.ecr_client = boto3.client("ecr", region_name=self.aws_region)
         self.cfd = CloudFormationDeployer(region_name=self.aws_region)
         self.aws_account_id = self.cfd.get_account_id()
 
-        # set redundant env vars since some libraries use AWS_DEFAULT_REGION while others use AWS_REGION
-        os.environ["AWS_REGION"] = aws_region
-        os.environ["AWS_DEFAULT_REGION"] = aws_region
+        print('REGION', self.aws_region)
 
     async def run(self):
         # compile future docker image URIs for locally built docker images
