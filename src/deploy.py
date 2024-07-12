@@ -24,7 +24,6 @@ from src.utils.github_helper import git_get_branch_and_hash
 logger = get_logger(__name__)
 
 
-# !IMPORTANT: path MUST have 3 components (e.g. "/a/b/c") or docker push will fail with HTTP 400
 DEFAULT_IMAGE_URI_FORMAT = "{aws_account_id}.dkr.ecr.{aws_region}.amazonaws.com/{cf_stack_prefix}/{env_name}/{service_name}:{git_commit}"
 DEFAULT_ENVIRONMENT = "dev"
 DEFAULT_TEMP_DIR = "_deployment_tmp"
@@ -258,7 +257,6 @@ class Deployment:
             build_cmd = f"""docker buildx build \
 {platform_str} \
 {cache_from_str} \
---cache-to type=local,dest={local_cache_dir},mode=max \
 {dockerfile_str} \
 {build_args_str} \
 {build_target_str} \
