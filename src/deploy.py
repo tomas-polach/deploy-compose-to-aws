@@ -236,7 +236,8 @@ class Deployment:
                 build_target_str = f"--target {build_target}" if build_target else ""
 
                 # Handle cache_from if present
-                cache_from = build_context.get("cache_from", 'type=local,src=/tmp/.buildx-cache')
+                # cache_from = build_context.get("cache_from", 'type=local,src=/tmp/.buildx-cache')
+                cache_from = build_context.get("cache_from", None)
                 cache_from_str = f"--cache-from {cache_from}" if cache_from else ""
             else:
                 raise ValueError(f"Invalid build context for service {service_name}")
