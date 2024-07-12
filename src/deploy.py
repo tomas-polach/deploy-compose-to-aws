@@ -204,6 +204,10 @@ class Deployment:
 
         # todo: deduplicate builds if a docker is used by multiple services (e.g. with various command line args)
 
+        # ensure local cache dir exists. build will fail otherwise when trying to write to the cache
+        local_cache_dir = '/tmp/.buildx-cache'
+        Path(local_cache_dir).mkdir(exist_ok=True, parents=True)
+
         # translate docker-compose build commands to docker buildx commands
         build_cmds = []
         for service_name, service_params in services_with_build.items():
@@ -246,7 +250,7 @@ class Deployment:
             build_target_str = f"--target {build_target}" if build_target else ""
 
             # Handle cache_from if present
-            cache_from = build_props.get("cache_from", 'type=local,src=/tmp/.buildx-cache')
+            cache_from = build_props.get("cache_from", f'type=local,src={local_cache_dir}')
             cache_from_str = f"--cache-from {cache_from}" if cache_from else ""
 
             # todo: add support for build.dockerfile_inline
@@ -256,7 +260,7 @@ class Deployment:
             build_cmd = f"""docker buildx build \
 {platform_str} \
 {cache_from_str} \
---cache-to type=local,dest=/tmp/.buildx-cache,mode=max \
+--cache-to type=local,dest={local_cache_dir},mode=max \
 {dockerfile_str} \
 {build_args_str} \
 {build_target_str} \
