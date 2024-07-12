@@ -234,14 +234,18 @@ class Deployment:
                 # Handle target if present
                 build_target = build_context.get("target", None)
                 build_target_str = f"--target {build_target}" if build_target else ""
+
+                # Handle cache_from if present
+                cache_from = build_context.get("cache_from", 'type=local,src=/tmp/.buildx-cache')
+                cache_from_str = f"--cache-from {cache_from}" if cache_from else ""
             else:
                 raise ValueError(f"Invalid build context for service {service_name}")
 
             # Build, tag and push images with Buildx, using the cache from the local storage
             build_cmd = f"""docker buildx build \
 {platform_str} \
---cache-from=type=local,src=/tmp/.buildx-cache \
---cache-to=type=local,dest=/tmp/.buildx-cache,mode=max \
+{cache_from_str} \
+--cache-to type=local,dest=/tmp/.buildx-cache,mode=max \
 --file {service_dockerfile} \
 {build_args_str} \
 {build_target_str} \
