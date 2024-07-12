@@ -204,58 +204,66 @@ class Deployment:
 
         # todo: deduplicate builds if a docker is used by multiple services (e.g. with various command line args)
 
+        # translate docker-compose build commands to docker buildx commands
         build_cmds = []
         for service_name, service_params in services_with_build.items():
             service_image_uri = docker_image_uri_by_service_name[service_name]
+
+            # service params
 
             # Handle platform if present
             platform = service_params.get("platform", "linux/amd64")
             platform_str = f"--platform {platform}"
 
-            # Determine the build context and Dockerfile path
-            build_context = service_params["build"]
-            if isinstance(build_context, str):
-                # e.g. build: ./my-dir
-                service_build_context = build_context
-                service_dockerfile = Path(build_context) / "Dockerfile"
+            # build params
 
-                build_args_str = ""
-                build_target_str = ""
-            elif isinstance(build_context, dict):
-                # e.g. build: { context: ./my-dir, dockerfile: Dockerfile.dev, args: { key: value } }
-                service_build_context = build_context.get("context", ".")
-                service_dockerfile = Path(service_build_context) / build_context.get(
-                    "dockerfile", "Dockerfile"
-                )
+            build_props = service_params["build"]
 
-                # Handle build args if present
-                build_args = build_context.get("args", {})
-                build_args_str = " ".join(
-                    [f"--build-arg {k}={v}" for k, v in build_args.items()]
-                )
+            # ensure build_props is a valid dict
+            if isinstance(build_props, str):
+                build_props = {"context": build_props}
+            elif "context" not in build_props:
+                # build_props["context"] = '.'
+                raise ValueError(f"Invalid build params for service '{service_name}': missing 'context' field.")
 
-                # Handle target if present
-                build_target = build_context.get("target", None)
-                build_target_str = f"--target {build_target}" if build_target else ""
+            context = build_props["context"]
 
-                # Handle cache_from if present
-                cache_from = build_context.get("cache_from", 'type=local,src=/tmp/.buildx-cache')
-                cache_from_str = f"--cache-from {cache_from}" if cache_from else ""
-            else:
-                raise ValueError(f"Invalid build context for service {service_name}")
+            # handle local files and git repos
+            is_git_context = context.startswith('https://') or context.startswith('http://')
+            dockerfile_str = (
+                '' if is_git_context
+                else '--file ' + str(Path(context) / build_props.get('dockerfile', 'Dockerfile'))
+            )
+
+            # Handle build args if present
+            build_args = build_props.get("args", {})
+            build_args_str = " ".join(
+                [f"--build-arg {k}={v}" for k, v in build_args.items()]
+            )
+
+            # Handle target if present
+            build_target = build_props.get("target", None)
+            build_target_str = f"--target {build_target}" if build_target else ""
+
+            # Handle cache_from if present
+            cache_from = build_props.get("cache_from", 'type=local,src=/tmp/.buildx-cache')
+            cache_from_str = f"--cache-from {cache_from}" if cache_from else ""
+
+            # todo: add support for build.dockerfile_inline
+            # todo add support for more params: https://docs.docker.com/compose/compose-file/build/
 
             # Build, tag and push images with Buildx, using the cache from the local storage
             build_cmd = f"""docker buildx build \
 {platform_str} \
 {cache_from_str} \
 --cache-to type=local,dest=/tmp/.buildx-cache,mode=max \
---file {service_dockerfile} \
+{dockerfile_str} \
 {build_args_str} \
 {build_target_str} \
 --tag {service_image_uri} \
 --push \
 --quiet \
-{service_build_context}"""
+{context}"""
             logger.debug(
                 f"Building and tagging docker images for service {service_name} with Buildx ...\n  {build_cmd}"
             )
