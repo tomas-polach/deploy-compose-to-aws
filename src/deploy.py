@@ -370,7 +370,8 @@ class Deployment:
             self.docker_compose_override_path,
         ]
         if self.ecs_compose_path is not None:
-            DockerComposeXFile.append(self.ecs_compose_path)
+            docker_compose_files.append(self.ecs_compose_path)
+
         ecx_settings = ComposeXSettings(
             command="render",
             TemplateFormat="yaml",
@@ -439,19 +440,19 @@ class Deployment:
 
     def _cf_deploy(self) -> None:
         # if stack doesn't exist, set ECS defaults
-        if not self.cfd.stack_exists(self.stack_name):
-            # https://github.com/compose-x/ecs_composex/blob/ff97d079113de5b1660c1beeafb24c8610971d10/ecs_composex/utils/init_ecs.py#L11
-            for setting in [
-                "awsvpcTrunking",
-                "serviceLongArnFormat",
-                "taskLongArnFormat",
-                "containerInstanceLongArnFormat",
-                "containerInsights",
-            ]:
-                self.ecs_client.put_account_setting_default(
-                    name=setting, value="enabled"
-                )
-                logger.info(f"ECS Setting {setting} set to 'enabled'")
+        # if not self.cfd.stack_exists(self.stack_name):
+        #     # https://github.com/compose-x/ecs_composex/blob/ff97d079113de5b1660c1beeafb24c8610971d10/ecs_composex/utils/init_ecs.py#L11
+        for setting in [
+            "awsvpcTrunking",
+            "serviceLongArnFormat",
+            "taskLongArnFormat",
+            "containerInstanceLongArnFormat",
+            "containerInsights",
+        ]:
+            self.ecs_client.put_account_setting_default(
+                name=setting, value="enabled"
+            )
+            logger.info(f"ECS Setting {setting} set to 'enabled'")
 
         # todo: check if stack exists and is in ROLLBACK_COMPLETE state --> delete the stack and re-create
         self.cfd.create_or_update_stack(
