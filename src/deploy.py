@@ -38,8 +38,8 @@ class Deployment:
         env_name: str | None = None,
         git_branch: str | None = None,
         git_commit: str | None = None,
-        docker_compose_path: str | None = None,
-        ecs_composex_path: str | None = None,
+        docker_compose_file: str | None = None,
+        ecs_composex_file: str | None = None,
         ecs_composex_subs: dict[str, str] | None = None,
         ecr_keep_last_n_images: int | None = 10,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
@@ -49,8 +49,12 @@ class Deployment:
         self.cf_stack_prefix = slugify(cf_stack_prefix)
         self.env_name = slugify(env_name or DEFAULT_ENVIRONMENT)
         self.aws_region = aws_region
-        self.docker_compose_path = Path(docker_compose_path or "docker-compose.yaml")
-        self.ecs_compose_orig_path = Path(ecs_composex_path or "ecs-composex.yaml")
+        self.docker_compose_path = Path(docker_compose_file or "docker-compose.yaml")
+        self.ecs_compose_orig_path = (
+            Path(ecs_composex_file)
+            if ecs_composex_file is not None
+            else None
+        )
         self.ecs_composex_subs = ecs_composex_subs or {}
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.image_uri_format = image_uri_format
@@ -74,9 +78,13 @@ class Deployment:
         self.cf_main_dir = Path(self.temp_dir) / "cf_main"
         self.cf_main_dir.mkdir(exist_ok=True, parents=True)
         self.cf_main_output_path = self.cf_main_dir / "outputs.json"
-        self.cf_disable_rollback = True
+        self.cf_disable_rollback = False
 
-        self.ecs_compose_path = Path(self.temp_dir) / self.ecs_compose_orig_path.name
+        self.ecs_compose_path = (
+            Path(self.temp_dir) / self.ecs_compose_orig_path.name
+            if self.ecs_compose_orig_path is not None
+            else None
+        )
 
         self.docker_compose_override_path = (
             Path(self.temp_dir) / f"docker-compose.override.yaml"
@@ -348,14 +356,21 @@ class Deployment:
         self.cfd.wait_for_stack_completion(stack_name=self.ci_stack_name)
 
     def _cf_handle_placeholders(self):
-        with self.ecs_compose_orig_path.open("r") as f:
-            text = f.read()
-        text = string.Template(text).substitute(self.ecs_composex_subs)
-        with self.ecs_compose_path.open("w") as f:
-            f.write(text)
+        if self.ecs_compose_orig_path is not None:
+            with self.ecs_compose_orig_path.open("r") as f:
+                text = f.read()
+            text = string.Template(text).substitute(self.ecs_composex_subs)
+            with self.ecs_compose_path.open("w") as f:
+                f.write(text)
 
     def _cf_generate(self) -> None:
         logger.debug(f"Generating CloudFormation template from Docker Compose ...")
+        docker_compose_files = [
+            self.docker_compose_path,
+            self.docker_compose_override_path,
+        ]
+        if self.ecs_compose_path is not None:
+            DockerComposeXFile.append(self.ecs_compose_path)
         ecx_settings = ComposeXSettings(
             command="render",
             TemplateFormat="yaml",
@@ -363,11 +378,7 @@ class Deployment:
             BucketName=self.ci_s3_bucket_name,
             Name=self.stack_name,
             disable_rollback=self.cf_disable_rollback,
-            DockerComposeXFile=[
-                self.docker_compose_path,
-                self.docker_compose_override_path,
-                self.ecs_compose_path,
-            ],
+            DockerComposeXFile=docker_compose_files,
             OutputDirectory=str(self.cf_main_dir),
         )
         ecx_root_stack = generate_full_template(ecx_settings)

@@ -9,16 +9,16 @@ inputs:
     description: 'The environment (will be added as suffix to the stack prefix). Fallback to branch name.'
     required: false
     default: ""
-  docker-compose-path:
-    description: 'The docker compose path. Defaults to "docker-compose.yaml"'
+  docker-compose-file:
+    description: 'The docker compose file path. Defaults to "docker-compose.yaml"'
     required: false
     default: ""
   ecs-composex-subs:
     description: 'A JSON string for replacing placeholders like ${foo} in the ECS compose x YAML file. JSON keys are the placeholders, values are the replacements. Defaults to {}'
     required: false
     default: "{}"
-  ecs-composex-path:
-    description: 'The AWS compose path. Defaults to "aws-compose-x.yaml"'
+  ecs-composex-file:
+    description: 'The AWS compose path. Defaults to "aws.yaml"'
     required: false
     default: ""
   ecr-keep-last-n-images:
@@ -74,8 +74,8 @@ runs:
         GITHUB_WORKSPACE: ${{ github.workspace }}
         INPUT_CF_STACK_PREFIX: ${{ inputs.cf-stack-prefix }}
         INPUT_ENV_NAME: ${{ inputs.env-name }}
-        INPUT_DOCKER_COMPOSE_PATH: ${{ inputs.docker-compose-path }}
-        INPUT_ECS_COMPOSEX_PATH: ${{ inputs.ecs-composex-path }}
+        INPUT_DOCKER_COMPOSE_FILE: ${{ inputs.docker-compose-file }}
+        INPUT_ECS_COMPOSEX_FILE: ${{ inputs.ecs-composex-file }}
         INPUT_ECS_COMPOSEX_SUBS: ${{ inputs.ecs-composex-subs }}
         INPUT_ECR_KEEP_LAST_N_IMAGES: ${{ inputs.ecr-keep-last-n-images }}
       run: |

@@ -13,8 +13,8 @@ def getenv(var_name: str, default=None):
 def github_action_handler():
     cf_stack_prefix = getenv("INPUT_CF_STACK_PREFIX", None)
     env_name = getenv("INPUT_ENV_NAME", None)
-    docker_compose_path = getenv("INPUT_DOCKER_COMPOSE_PATH", None)
-    ecs_composex_path = getenv("INPUT_ECS_COMPOSEX_PATH", None)
+    docker_compose_file = getenv("INPUT_DOCKER_COMPOSE_FILE", None)
+    ecs_composex_file = getenv("INPUT_ECS_COMPOSEX_FILE", None)
     ecs_composex_subs = getenv("INPUT_ECS_COMPOSEX_SUBS", "{}")
     ecr_keep_last_n_images = getenv("INPUT_ECR_KEEP_LAST_N_IMAGES", None)
 
@@ -72,8 +72,8 @@ def github_action_handler():
     dep = Deployment(
         cf_stack_prefix=cf_stack_prefix,
         env_name=env_name,
-        docker_compose_path=docker_compose_path,
-        ecs_composex_path=ecs_composex_path,
+        docker_compose_file=docker_compose_file,
+        ecs_composex_file=ecs_composex_file,
         ecs_composex_subs=ecs_composex_subs,
         ecr_keep_last_n_images=ecr_keep_last_n_images,
         git_branch=git_branch,
