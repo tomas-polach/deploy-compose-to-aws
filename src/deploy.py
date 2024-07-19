@@ -358,7 +358,7 @@ class Deployment:
             with self.ecs_compose_orig_path.open("r") as f:
                 text = f.read()
             env_subs = { k: v for k, v in os.environ.items() }
-            text = string.Template(text).substitute(env_subs)
+            text = string.Template(text).safe_substitute(env_subs)
             with self.ecs_compose_path.open("w") as f:
                 f.write(text)
 

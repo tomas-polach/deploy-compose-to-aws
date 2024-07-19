@@ -64,11 +64,11 @@ jobs:
 
 ## Todos
 
+- [ ] PR to ECS Compose X, then use official dependency
 - [ ] add cf_disable_rollback param
 - [ ] Print CF errors in action UI
-- [ ] Deploy to public docker hub
 - [ ] Add examples
-- [ ] PR to ECS Compose X, then use official dependency
+- [ ] Reuse image if same across services (instead of building multiple times)
 
 ## What this does under the hood
 
