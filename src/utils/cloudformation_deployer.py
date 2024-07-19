@@ -40,7 +40,7 @@ class CloudFormationDeployer:
     def wait_for_stack_completion(
         self,
         stack_name: str,
-        timeout=60 * 60,  # in seconds
+        timeout=2 * 60 * 60,  # in seconds
         sleep_time=10,
     ) -> None:
         elapsed_time = 2  # initial delay

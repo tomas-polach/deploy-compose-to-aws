@@ -15,7 +15,6 @@ def github_action_handler():
     env_name = getenv("INPUT_ENV_NAME", None)
     docker_compose_file = getenv("INPUT_DOCKER_COMPOSE_FILE", None)
     ecs_composex_file = getenv("INPUT_ECS_COMPOSEX_FILE", None)
-    ecs_composex_subs = getenv("INPUT_ECS_COMPOSEX_SUBS", "{}")
     ecr_keep_last_n_images = getenv("INPUT_ECR_KEEP_LAST_N_IMAGES", None)
 
     aws_region = getenv("AWS_REGION", None) or getenv("AWS_DEFAULT_REGION", None)
@@ -33,12 +32,6 @@ def github_action_handler():
         raise ValueError("AWS_REGION environment variable is not set")
 
     # process params
-
-    # parse ecs compose x substitutes
-    try:
-        ecs_composex_subs = json.loads(ecs_composex_subs)
-    except json.JSONDecodeError:
-        raise ValueError("Invalid JSON string provided for ECS Compose X substitutes")
 
     # convert ecr_keep_last_n_images to int
     if ecr_keep_last_n_images == "" or ecr_keep_last_n_images == "0":
@@ -74,7 +67,6 @@ def github_action_handler():
         env_name=env_name,
         docker_compose_file=docker_compose_file,
         ecs_composex_file=ecs_composex_file,
-        ecs_composex_subs=ecs_composex_subs,
         ecr_keep_last_n_images=ecr_keep_last_n_images,
         git_branch=git_branch,
         git_commit=git_commit,

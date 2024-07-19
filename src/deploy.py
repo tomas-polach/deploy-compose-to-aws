@@ -40,7 +40,6 @@ class Deployment:
         git_commit: str | None = None,
         docker_compose_file: str | None = None,
         ecs_composex_file: str | None = None,
-        ecs_composex_subs: dict[str, str] | None = None,
         ecr_keep_last_n_images: int | None = 10,
         image_uri_format: str = DEFAULT_IMAGE_URI_FORMAT,
         temp_dir: str = DEFAULT_TEMP_DIR,
@@ -55,7 +54,6 @@ class Deployment:
             if ecs_composex_file is not None
             else None
         )
-        self.ecs_composex_subs = ecs_composex_subs or {}
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.image_uri_format = image_uri_format
 
@@ -119,7 +117,7 @@ class Deployment:
         await self._docker_build_tag_push(docker_image_uri_by_service_name)
 
         # CloudFormation: main stack
-        self._cf_handle_placeholders()
+        self._cf_handle_substitution()
         self._cf_generate()
         self._cf_update(template_modifier=self._cf_update_template_urls)
         self._cf_upload_to_s3()
@@ -355,11 +353,12 @@ class Deployment:
         )
         self.cfd.wait_for_stack_completion(stack_name=self.ci_stack_name)
 
-    def _cf_handle_placeholders(self):
+    def _cf_handle_substitution(self):
         if self.ecs_compose_orig_path is not None:
             with self.ecs_compose_orig_path.open("r") as f:
                 text = f.read()
-            text = string.Template(text).substitute(self.ecs_composex_subs)
+            env_subs = { k: v for k, v in os.environ.items() }
+            text = string.Template(text).substitute(env_subs)
             with self.ecs_compose_path.open("w") as f:
                 f.write(text)
 
