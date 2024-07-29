@@ -26,9 +26,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy to AWS
-        uses: tomas-polach/deploy-compose-to-aws@main
-        id: deploy
+      - name: Build Docker Images
+        uses: tomas-polach/deploy-compose-to-aws@ecr-build
+        id: build
         env:
           # required
           AWS_REGION: 'eu-west-1'
@@ -36,17 +36,24 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         with:
           # (optional) will replace "${my_placeholder}" with "foobar" in the ecs compose x YAML file
-          ecs_composex_subs: |
-            {
-              "my_placeholder": "foobar"
-            }
-
+          builds: |
+            django:
+              build:
+                context: .
+                dockerfile: Dockerfile
+                args:
+                  - NODE_ENV=production
+              platform: linux/amd64
+          cf-stack-prefix: my-stack
+          cf-template-path: infra/main.yaml
+          cf-parameter-overrides: |
+            domain: mydomain.com
 
       # optional: Use outputs from the deployment
       - name: Extract outputs
         id: deploy-outputs
         run: |
-          load_balancer_dns_name=$(jq -r '.by_output_key.publicalbDNSName' "${{ steps.deploy.outputs.cf-output-path }}")
+          load_balancer_dns_name=$(jq -r '.by_output_key.publicalbDNSName' "${{ steps.build.outputs.image-url-by-service-json }}")
           echo "load-balancer-dns-name=$load_balancer_dns_name" >> $GITHUB_OUTPUT
 
       - name: Use outputs

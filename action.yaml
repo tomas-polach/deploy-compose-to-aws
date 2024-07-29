@@ -3,28 +3,29 @@ description: 'Deploy to AWS CloudFormation using Python 3.11 and AWS CLI'
 inputs:
   cf-stack-prefix:
     description: 'The prefix for the CloudFormation stack name. Fallback to repo name.'
+    required: true
+    default: ""
+  cf-template-path:
+    description: 'The path to the CloudFormation template file. Fallback to "template.yaml".'
+    required: true
+    default: "template.yaml"
+  cf-parameter-overrides:
+    description: 'The CloudFormation parameters to override in YAML format. Fallback to empty string.'
     required: false
+    default: ""
+  builds:
+    description: 'Services to build and deploy in YAML format. Fallback to empty string.'
+    required: true
     default: ""
   env-name:
-    description: 'The environment (will be added as suffix to the stack prefix). Fallback to branch name.'
+    description: 'The environment name to deploy to. Fallback to "dev".'
     required: false
-    default: ""
-  docker-compose-file:
-    description: 'The docker compose file path. Defaults to "docker-compose.yaml"'
-    required: false
-    default: ""
-  ecs-composex-subs:
-    description: 'A JSON string for replacing placeholders like ${foo} in the ECS compose x YAML file. JSON keys are the placeholders, values are the replacements. Defaults to {}'
-    required: false
-    default: "{}"
-  ecs-composex-file:
-    description: 'The AWS compose path. Defaults to "aws.yaml"'
-    required: false
-    default: ""
+    default: "dev"
   ecr-keep-last-n-images:
-    description: 'The number of images to keep in the ECR repository. Defaults to 10. Set to 0 to keep all.'
+    description: 'The number of images to keep in the ECR repository. Fallback to 10.'
     required: false
-    default: '10'
+    default: "10"
+
 
 outputs:
   cf-output-path:
@@ -73,10 +74,10 @@ runs:
       env:
         GITHUB_WORKSPACE: ${{ github.workspace }}
         INPUT_CF_STACK_PREFIX: ${{ inputs.cf-stack-prefix }}
+        INPUT_CF_TEMPLATE_PATH: ${{ inputs.cf-template-path }}
+        INPUT_CF_PARAMETER_OVERRIDES: ${{ inputs.cf-parameter-overrides }}
         INPUT_ENV_NAME: ${{ inputs.env-name }}
-        INPUT_DOCKER_COMPOSE_FILE: ${{ inputs.docker-compose-file }}
-        INPUT_ECS_COMPOSEX_FILE: ${{ inputs.ecs-composex-file }}
-        INPUT_ECS_COMPOSEX_SUBS: ${{ inputs.ecs-composex-subs }}
+        INPUT_BUILD_PARAMS: ${{ inputs.builds }}
         INPUT_ECR_KEEP_LAST_N_IMAGES: ${{ inputs.ecr-keep-last-n-images }}
       run: |
         cd ${GITHUB_ACTION_PATH}
