@@ -97,7 +97,7 @@ class Deployment:
         # generate docker-compose.override.yaml which will add docker image URIs to services with local docker builds,
         # so that docker knows where to push the locally built images to
         # self._docker_generate_override_file(docker_image_uri_by_service_name)
-        # await self._docker_login_ecr()
+        await self._docker_login_ecr()
         await self._docker_build_tag_push(docker_image_uri_by_service_name)
 
         # CloudFormation: main stack

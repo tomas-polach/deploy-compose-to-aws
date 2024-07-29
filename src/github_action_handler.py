@@ -64,6 +64,7 @@ def github_action_handler():
             )
 
     # get branch name
+    # todo: use GITHUB_REF_NAME without splitting
     git_branch = git_ref.split("/")[-1] if git_ref is not None else None
 
     # set defaults

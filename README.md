@@ -42,7 +42,7 @@ jobs:
                 context: .
                 dockerfile: Dockerfile
                 args:
-                  - NODE_ENV=production
+                  NODE_ENV: production
               platform: linux/amd64
           cf-stack-prefix: my-stack
           cf-template-path: infra/main.yaml
