@@ -72,6 +72,7 @@ class CloudFormationDeployer:
         template_body: str | None = None,
         template_url: str | None = None,
         parameters: dict[str, str] = {},
+        disable_rollback: bool = False,
         capabilities: list[str] | None = None,
     ) -> bool:
         """
@@ -95,6 +96,7 @@ class CloudFormationDeployer:
                     for key, val in parameters.items()
                 ],
                 "Capabilities": capabilities or self._default_capabilities,
+                "DisableRollback": disable_rollback,
             }
             if template_body:
                 params["TemplateBody"] = template_body
