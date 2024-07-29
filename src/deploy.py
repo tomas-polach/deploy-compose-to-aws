@@ -115,7 +115,9 @@ class Deployment:
         # self._cf_handle_substitution()
         # self._cf_update(template_modifier=self._cf_update_template_urls)
         self._cf_upload_to_s3()
-        self._cf_deploy()
+
+        # todo: provide image uri as params in the cf template
+        self._cf_deploy(docker_image_uri_by_service_name)
         # self._cf_store_outputs()
 
         # todo: provide image uri as action outputs
@@ -381,7 +383,7 @@ class Deployment:
     def _cf_get_template_url(self, filename: str):
         return f"https://{self.ci_s3_bucket_name}.s3.{self.aws_region}.amazonaws.com/{self.ci_s3_key_prefix}/{filename}"
 
-    def _cf_deploy(self) -> None:
+    def _cf_deploy(self, docker_image_uri_by_service_name: dict[str, str]) -> None:
         # if stack doesn't exist, set ECS defaults
         # if not self.cfd.stack_exists(self.stack_name):
         #     # https://github.com/compose-x/ecs_composex/blob/ff97d079113de5b1660c1beeafb24c8610971d10/ecs_composex/utils/init_ecs.py#L11
@@ -397,10 +399,20 @@ class Deployment:
         #     )
         #     logger.info(f"ECS Setting {setting} set to 'enabled'")
 
+        imageUriParam = {
+            f'{service_name}ImageUri': docker_image_uri
+            for service_name, docker_image_uri in docker_image_uri_by_service_name.items()
+        }
+        params = {
+            **self.cf_parameter_overrides,
+            **imageUriParam,
+        }
+
         # todo: check if stack exists and is in ROLLBACK_COMPLETE state --> delete the stack and re-create
         self.cfd.create_or_update_stack(
             stack_name=self.stack_name,
             template_url=self._cf_get_template_url(filename=self.cf_template_path.name),
+            parameters=params,
         )
         self.cfd.wait_for_stack_completion(self.stack_name)
 
