@@ -1,0 +1,50 @@
+x-cloudmap:
+  PrivateNamespace:
+    Name: local.internal
+
+services:
+  web-server:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512MB'
+    x-network:
+      x-ecs_connect:
+        MacroParameters:
+          x-cloudmap: PrivateNamespace
+          service_ports:
+            tcp_8000:
+              DnsName: web-server
+              CloudMapServiceName: web-server
+      Ingress:
+        Services:
+          - Name: web-client
+
+  web-client:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512MB'
+    # IMPORTANT: even though the web-client service is not expected to serve any ports,
+    # it must still be assigned a port mapping, otherwise it will not get a ECS connect side car.
+    ports:
+      - "80:80"
+    x-network:
+      x-ecs_connect:
+        # Properties:
+        #   Enabled: True
+        #   # LogConfiguration:
+        #   Namespace: local.internal
+        #   # Services: []
+        MacroParameters:
+          x-cloudmap: PrivateNamespace
+          service_ports:
+            tcp_80:
+              DnsName: web-client
+              CloudMapServiceName: web-client
+      # Ingress:
+      #   ExtSources:
+      #     - IPv4: 0.0.0.0/0
+      #       Name: ANY
