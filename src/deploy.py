@@ -71,17 +71,6 @@ class Deployment:
         self.cf_main_dir = Path(self.temp_dir) / "cf_main"
         self.cf_main_dir.mkdir(exist_ok=True, parents=True)
         self.cf_main_output_path = self.cf_main_dir / "outputs.json"
-        self.cf_disable_rollback = False
-
-        self.ecs_compose_path = (
-            Path(self.temp_dir) / self.ecs_compose_orig_path.name
-            if self.ecs_compose_orig_path is not None
-            else None
-        )
-
-        self.docker_compose_override_path = (
-            Path(self.temp_dir) / f"docker-compose.override.yaml"
-        )
 
         # set redundant env vars since some libraries use AWS_DEFAULT_REGION while others use AWS_REGION
         os.environ["AWS_REGION"] = aws_region
