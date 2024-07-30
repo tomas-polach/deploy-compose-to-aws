@@ -402,7 +402,7 @@ class Deployment:
             stack_name=self.stack_name,
             template_url=self._cf_get_template_url(filename=self.cf_template_path.name),
             parameters=params,
-            disable_rollback=True,
+            disable_rollback=False,
         )
         self.cfd.wait_for_stack_completion(self.stack_name)
 
