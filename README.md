@@ -1,4 +1,4 @@
-# CloudFormation Deploy Action
+# Build Local Docker and Deploy with CloudFormation
 
 ⚠️ WORK IN PROGRESS ⚠️
 

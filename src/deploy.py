@@ -1,8 +1,6 @@
 import asyncio
 import json
-import shutil
 import os
-import string
 import base64
 from typing import Callable
 from pathlib import Path
@@ -32,7 +30,7 @@ class Deployment:
         self,
         aws_region: str,
         cf_stack_prefix: str,
-        cf_template_path: str,
+        cf_template_path: str | None,
         cf_parameter_overrides: dict | None,
         build_params: dict[str, dict],
         env_name: str | None = None,
@@ -44,13 +42,12 @@ class Deployment:
     ):
 
         self.cf_stack_prefix = slugify(cf_stack_prefix)
-        self.cf_template_path = Path(cf_template_path)
+        self.cf_template_path = Path(cf_template_path) if cf_template_path else None
         self.cf_parameter_overrides = cf_parameter_overrides
         self.env_name = slugify(env_name or DEFAULT_ENVIRONMENT)
         self.aws_region = aws_region
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.image_uri_format = image_uri_format
-
         self.build_params = build_params
 
         # compose internal params
@@ -103,19 +100,20 @@ class Deployment:
         # CloudFormation: main stack
         # self._cf_handle_substitution()
         # self._cf_update(template_modifier=self._cf_update_template_urls)
-        self._cf_upload_to_s3()
+        if self.cf_template_path:
+            self._cf_upload_to_s3()
 
-        # todo: provide image uri as params in the cf template
-        self._cf_deploy(docker_image_uri_by_service_name)
-        # self._cf_store_outputs()
+            # todo: provide image uri as params in the cf template
+            self._cf_deploy(docker_image_uri_by_service_name)
+            # self._cf_store_outputs()
 
-        # todo: provide image uri as action outputs
+            # todo: provide image uri as action outputs
 
-        # delete temp dir
-        # if self.keep_temp_files is not True:
-        #     shutil.rmtree(self.temp_dir)
+            # delete temp dir
+            # if self.keep_temp_files is not True:
+            #     shutil.rmtree(self.temp_dir)
 
-        # todo: keep only the last 10 versions of the ci stack on S3
+            # todo: keep only the last 10 versions of the ci stack on S3
 
     async def _docker_login_ecr(self) -> None:
         # Get the ECR authorization token

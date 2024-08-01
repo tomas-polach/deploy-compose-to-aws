@@ -7,8 +7,8 @@ inputs:
     default: ""
   cf-template-path:
     description: 'The path to the CloudFormation template file. Fallback to "template.yaml".'
-    required: true
-    default: "template.yaml"
+    required: false
+    default: ""
   cf-parameter-overrides:
     description: 'The CloudFormation parameters to override in YAML format. Fallback to empty string.'
     required: false
