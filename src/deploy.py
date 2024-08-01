@@ -98,9 +98,10 @@ class Deployment:
         await self._docker_build_tag_push(docker_image_uri_by_service_name)
         # return image URIs as outputs
         # Set an output to indicate the file path
-        with open(os.environ["GITHUB_OUTPUT"], "a") as gh_output:
+        with open(os.environ["GITHUB_OUTPUT"], "a") as gho:
             for service_name, image_uri in docker_image_uri_by_service_name.items():
-                gh_output.write(f"{service_name}-image-uri={image_uri}\n")
+                print(f"CREATING OUTPUT VAR: {service_name}-image-uri={image_uri}")
+                gho.write(f"{service_name}-image-uri={image_uri}\n")
 
         # CloudFormation: main stack
         # self._cf_handle_substitution()
