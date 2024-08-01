@@ -186,6 +186,15 @@ class Deployment:
             platform = service_params.get("platform", "linux/amd64")
             platform_str = f"--platform {platform}"
 
+            # handle provenance if present
+            # needed for deploying lambda functions --> https://stackoverflow.com/a/75149347
+            provenance_str = ""
+            if 'provenance' in service_params:
+                if service_params['provenance'] == 'true':
+                    provenance_str = f"--provenance=true"
+                else:
+                    provenance_str = f"--provenance=false"
+
             # build params
 
             build_props = service_params["build"]
@@ -210,7 +219,7 @@ class Deployment:
             # Handle build args if present
             build_args = build_props.get("args", {})
             build_args_str = " ".join(
-                [f"--build-arg {k}={v}" for k, v in build_args.items()]
+                [f'--build-arg {k}="{v}"' for k, v in build_args.items()]
             )
 
             # Handle target if present
@@ -233,7 +242,7 @@ class Deployment:
 {build_target_str} \
 --tag {service_image_uri} \
 --quiet \
---provenance=false \
+{provenance_str} \
 --push \
 {context}"""
             logger.debug(
