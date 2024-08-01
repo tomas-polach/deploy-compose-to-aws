@@ -1,3 +1,4 @@
 #ecs_composex==1.1.2
 PyYAML==6.0.1
 python-slugify==8.0.4
+boto3
