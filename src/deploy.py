@@ -99,9 +99,7 @@ class Deployment:
         # return image URIs as outputs
         # Set an output to indicate the file path
         with open(os.environ["GITHUB_OUTPUT"], "a") as gho:
-            for service_name, image_uri in docker_image_uri_by_service_name.items():
-                print(f"CREATING OUTPUT VAR: {service_name}-image-uri={image_uri}")
-                gho.write(f"{service_name}-image-uri={image_uri}\n")
+            gho.write(f"service-to-image-uri-json={json.dumps(docker_image_uri_by_service_name)}\n")
 
         # CloudFormation: main stack
         # self._cf_handle_substitution()

@@ -31,6 +31,9 @@ outputs:
   cf-output-path:
     description: 'A JSON string containing all CloudFormation outputs in JSON format'
     value: ${{ steps.deploy.outputs.cf-output-path }}
+  service-to-image-uri-json:
+    description: 'A JSON string containing all service to image URI mappings in JSON format'
+    value: ${{ steps.deploy.outputs.service-to-image-uri-json }}
 
 runs:
   using: 'composite'
