@@ -233,6 +233,7 @@ class Deployment:
 {build_target_str} \
 --tag {service_image_uri} \
 --quiet \
+--provenance=false \
 --push \
 {context}"""
             logger.debug(
