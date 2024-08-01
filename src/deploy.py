@@ -96,6 +96,11 @@ class Deployment:
         # self._docker_generate_override_file(docker_image_uri_by_service_name)
         await self._docker_login_ecr()
         await self._docker_build_tag_push(docker_image_uri_by_service_name)
+        # return image URIs as outputs
+        # Set an output to indicate the file path
+        with open(os.environ["GITHUB_OUTPUT"], "a") as gh_output:
+            for service_name, image_uri in docker_image_uri_by_service_name.items():
+                gh_output.write(f"{service_name}-image-uri={image_uri}\n")
 
         # CloudFormation: main stack
         # self._cf_handle_substitution()
@@ -105,7 +110,7 @@ class Deployment:
 
             # todo: provide image uri as params in the cf template
             self._cf_deploy(docker_image_uri_by_service_name)
-            # self._cf_store_outputs()
+            self._cf_store_outputs()
 
             # todo: provide image uri as action outputs
 
