@@ -138,8 +138,8 @@ class Deployment:
                 cf_stack_prefix=self.cf_stack_prefix,
                 env_name=self.env_name,
                 stack_name=self.stack_name,
-                service_name=service_name,
-                git_branch=self.git_branch,
+                service_name=slugify(service_name),
+                git_branch=slugify(self.git_branch),
                 git_commit=self.git_commit,
             )
             for service_name in self.build_params.keys()
