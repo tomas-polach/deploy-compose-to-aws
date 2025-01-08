@@ -15,6 +15,7 @@ def github_action_handler():
     cf_template_path = getenv("INPUT_CF_TEMPLATE_PATH", None)
     cf_parameter_overrides = getenv("INPUT_CF_PARAMETER_OVERRIDES", None)
     build_params = getenv("INPUT_BUILD_PARAMS", None)
+    build_quiet = getenv("INPUT_BUILD_QUIET", None)
     env_name = getenv("INPUT_ENV_NAME", None)
     ecr_keep_last_n_images = getenv("INPUT_ECR_KEEP_LAST_N_IMAGES", None)
 
@@ -34,7 +35,7 @@ def github_action_handler():
 
     # process params
 
-    # convert cf_parameter_overrides to dict
+    # cast cf_parameter_overrides to dict
     if cf_parameter_overrides is not None:
         try:
             cf_parameter_overrides = yaml.safe_load(cf_parameter_overrides)
@@ -43,7 +44,7 @@ def github_action_handler():
                 f"Invalid value provided for CF_PARAMETER_OVERRIDES. {str(e)}"
             )
 
-    # convert build_params to dict
+    # cast build_params to dict
     if build_params is not None:
         try:
             build_params = yaml.safe_load(build_params)
@@ -52,7 +53,11 @@ def github_action_handler():
                 f"Invalid value provided for BUILD_PARAMS. {str(e)}"
             )
 
-    # # convert ecr_keep_last_n_images to int
+    # cast build_quiet to bool
+    if build_quiet is not None:
+        build_quiet = build_quiet.lower() in ["true", "1", "yes"]
+
+    # # cast ecr_keep_last_n_images to int
     if ecr_keep_last_n_images == "" or ecr_keep_last_n_images == "0":
         ecr_keep_last_n_images = None
     elif ecr_keep_last_n_images is not None:
@@ -87,6 +92,7 @@ def github_action_handler():
         cf_template_path=cf_template_path,
         cf_parameter_overrides=cf_parameter_overrides,
         build_params=build_params,
+        build_quiet=build_quiet,
         env_name=env_name,
         ecr_keep_last_n_images=ecr_keep_last_n_images,
         git_branch=git_branch,

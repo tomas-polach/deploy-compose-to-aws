@@ -17,6 +17,10 @@ inputs:
     description: 'Services to build and deploy in YAML format. Fallback to empty string.'
     required: true
     default: ""
+  build-quiet:
+    description: 'Whether to suppress build output. Fallback to false.'
+    required: false
+    default: "false"
   env-name:
     description: 'The environment name to deploy to. Fallback to "dev".'
     required: false
@@ -81,6 +85,7 @@ runs:
         INPUT_CF_PARAMETER_OVERRIDES: ${{ inputs.cf-parameter-overrides }}
         INPUT_ENV_NAME: ${{ inputs.env-name }}
         INPUT_BUILD_PARAMS: ${{ inputs.builds }}
+        INPUT_BUILD_QUIET: ${{ inputs.build-quiet }}
         INPUT_ECR_KEEP_LAST_N_IMAGES: ${{ inputs.ecr-keep-last-n-images }}
       run: |
         cd ${GITHUB_ACTION_PATH}

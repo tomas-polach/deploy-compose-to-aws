@@ -33,6 +33,7 @@ class Deployment:
         cf_template_path: str | None,
         cf_parameter_overrides: dict | None,
         build_params: dict[str, dict],
+        build_quiet: bool | None = None,
         env_name: str | None = None,
         git_branch: str | None = None,
         git_commit: str | None = None,
@@ -49,6 +50,7 @@ class Deployment:
         self.ecr_keep_last_n_images = ecr_keep_last_n_images
         self.image_uri_format = image_uri_format
         self.build_params = build_params
+        self.build_quiet = build_quiet
 
         # compose internal params
         self.stack_name = f"{self.cf_stack_prefix}-{self.env_name}"
@@ -95,7 +97,10 @@ class Deployment:
         # so that docker knows where to push the locally built images to
         # self._docker_generate_override_file(docker_image_uri_by_service_name)
         await self._docker_login_ecr()
-        await self._docker_build_tag_push(docker_image_uri_by_service_name)
+        await self._docker_build_tag_push(
+            docker_image_uri_by_service_name,
+            quiet=self.build_quiet,
+        )
         # return image URIs as outputs
         # Set an output to indicate the file path
         with open(os.environ["GITHUB_OUTPUT"], "a") as gho:
@@ -164,7 +169,9 @@ class Deployment:
             yaml.dump(override_config, fd)
 
     async def _docker_build_tag_push(
-        self, docker_image_uri_by_service_name: dict[str, str]
+        self,
+        docker_image_uri_by_service_name: dict[str, str],
+        quiet: bool | None = None,
     ) -> None:
         # Create a new Buildx builder instance and use it
         logger.debug(f"Setting up Docker Buildx ...")
@@ -174,6 +181,9 @@ class Deployment:
         # ensure local cache dir exists. build will fail otherwise when trying to write to the cache
         local_cache_dir = '/tmp/.buildx-cache'
         Path(local_cache_dir).mkdir(exist_ok=True, parents=True)
+
+        # quiet param
+        quiet_str = "--quiet" if quiet else ""
 
         # translate docker-compose build commands to docker buildx commands
         build_cmds = []
@@ -241,7 +251,7 @@ class Deployment:
 {build_args_str} \
 {build_target_str} \
 --tag {service_image_uri} \
---quiet \
+{quiet_str} \
 {provenance_str} \
 --push \
 {context}"""
